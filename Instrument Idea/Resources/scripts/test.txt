@@ -9,10 +9,7 @@ on init
 	make_persistent($distortion)
 	declare $k_distortion
 	$k_distortion := get_ui_id($distortion)
-	set_control_par_str($k_distortion,$CONTROL_PAR_PICTURE,"minmax-100")
-	set_control_par($k_distortion,$CONTROL_PAR_POS_X,200)
-	set_control_par($k_distortion,$CONTROL_PAR_POS_Y,5)
-	set_control_par($k_distortion,$CONTROL_PAR_MOUSE_BEHAVIOUR,$mouse_resp)
+
 end on
 
 
