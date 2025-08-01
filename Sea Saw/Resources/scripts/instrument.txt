@@ -1,0 +1,105 @@
+{***********************************************
+Interval
+Author: Native Instruments
+Written by: Nicki Marinic
+Modified: Aug 10, 2009
+*************************************************}
+
+on init
+	message("")
+	
+{**}
+
+	set_script_title("See Saw")
+	make_perfview
+	set_ui_height_px(256)
+	set_ui_width_px(640)
+	set_control_par_str($INST_WALLPAPER_ID,$CONTROL_PAR_PICTURE,"instrumentbackground")
+
+{**}
+
+
+
+{**}
+
+	declare !interval_names[14]
+	!interval_names[0] := "Unison"
+	!interval_names[1] := "mi 2nd"
+	!interval_names[2] := "2nd"
+	!interval_names[3] := "mi 3rd"
+	!interval_names[4] := "3rd"
+	!interval_names[5] := "4th"
+	!interval_names[6] := "+ 4th"
+	!interval_names[7] := "5th"
+	!interval_names[8] := "mi 6th"
+	!interval_names[9] := "6th"
+	!interval_names[10] := "mi 7th"
+	!interval_names[11] := "7th"
+	!interval_names[12] := "8ve"
+	
+	declare $new_note
+	declare $new_velocity
+	declare $new_id
+	
+ 	declare ui_knob $interval_knob(-12,12,1)
+	set_text ($interval_knob,"Interval")
+	set_knob_defval($interval_knob,0)
+	$interval_knob := 7
+	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])			
+	make_persistent($interval_knob)
+	set_control_help ($interval_knob,"Interval: Sets the interval of the second note.")
+	
+	declare ui_knob $octave_knob(-10,10,1)
+	set_text ($octave_knob,"Octave")
+	set_knob_unit($octave_knob,$KNOB_UNIT_OCT)
+	set_knob_defval($octave_knob,0)
+	$octave_knob := 0
+	make_persistent($octave_knob)
+	set_control_help ($octave_knob,"Octave: Sets the octave offset of the second note.")
+	
+	declare ui_knob $velocity_knob(1,200,1)
+	set_text ($velocity_knob,"Velocity")
+	set_knob_unit($velocity_knob,$KNOB_UNIT_PERCENT)
+	set_knob_defval($velocity_knob,100)
+	$velocity_knob := 100
+	make_persistent($velocity_knob)
+	set_control_help ($velocity_knob,"Velocoty: Sets the velocity of the second note as a percentage of the played velocity.")
+
+	move_control($interval_knob,2,2)
+	move_control($octave_knob,3,2)
+	move_control($velocity_knob,5,2)
+	
+	_read_persistent_var($interval_knob)
+	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])			
+end on
+
+on note
+	
+		$new_note:= $EVENT_NOTE + $interval_knob+($octave_knob*12)
+		
+		if ($new_note < 0)
+			$new_note := 0
+		end if
+		if ($new_note > 127)
+			$new_note := 127
+		end if
+		
+		$new_velocity := ($EVENT_VELOCITY*$velocity_knob)/100
+					
+		if ($new_velocity < 1)
+			$new_velocity := 1
+		end if
+		if ($new_velocity > 127)
+			$new_velocity := 127
+		end if
+		
+		$new_id := play_note($new_note,$new_velocity,0,-1)
+		change_vol($new_id,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME),1)
+		change_tune($new_id,get_event_par($EVENT_ID,$EVENT_PAR_TUNE),1)
+		change_pan($new_id,get_event_par($EVENT_ID,$EVENT_PAR_PAN),1)
+	
+end on
+
+on ui_control ($interval_knob)
+	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])
+end on
