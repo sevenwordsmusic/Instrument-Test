@@ -1,7 +1,7 @@
 {***********************************************
 Interval
 Author: Native Instruments
-Written by: Nicki Marinic
+Written by: Nicki Marinic & Alberto Alcázar
 Modified: Aug 10, 2009
 *************************************************}
 
@@ -9,17 +9,23 @@ on init
 	message("")
 	
 {**}
-
 	set_script_title("See Saw")
 	make_perfview
 	set_ui_height_px(256)
 	set_ui_width_px(640)
-	set_control_par_str($INST_WALLPAPER_ID,$CONTROL_PAR_PICTURE,"instrumentbackground")
 
-{**}
+	set_engine_par($ENGINE_PAR_EFFECT_TYPE, $EFFECT_TYPE_DISTORTION, -1, 0, 1)
+
+ 	declare ui_knob $distortion_knob(0,1000000,1)
+	set_text ($distortion_knob,"Distortion")
+	set_knob_defval($distortion_knob,500000)
+	$distortion_knob := 500000
+	set_control_help ($distortion_knob,"Distortion: Sets the amount of distortion.")
+	move_control($distortion_knob,1,2)
 
 
-
+    set_engine_par($ENGINE_PAR_DRIVE, $distortion_knob, -1, 0, 1)
+	set_knob_label($distortion_knob, get_engine_par_disp($ENGINE_PAR_DRIVE, -1, 0, 1))
 {**}
 
 	declare !interval_names[14]
@@ -63,14 +69,15 @@ on init
 	set_knob_defval($velocity_knob,100)
 	$velocity_knob := 100
 	make_persistent($velocity_knob)
-	set_control_help ($velocity_knob,"Velocoty: Sets the velocity of the second note as a percentage of the played velocity.")
+	set_control_help ($velocity_knob,"Velocity: Sets the velocity of the second note as a percentage of the played velocity.")
 
-	move_control($interval_knob,2,2)
-	move_control($octave_knob,3,2)
+	move_control($interval_knob,3,2)
+	move_control($octave_knob,4,2)
 	move_control($velocity_knob,5,2)
 	
 	_read_persistent_var($interval_knob)
-	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])			
+	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])
+
 end on
 
 on note
@@ -103,3 +110,12 @@ end on
 on ui_control ($interval_knob)
 	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])
 end on
+
+{**}
+
+on ui_control ($distortion_knob)
+    set_engine_par($ENGINE_PAR_DRIVE, $distortion_knob, -1, 0, 1)
+	set_knob_label($distortion_knob, get_engine_par_disp($ENGINE_PAR_DRIVE, -1, 0, 1))
+end on
+
+{**}
