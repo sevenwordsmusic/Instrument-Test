@@ -11,7 +11,7 @@ on init
 {**}
 	set_script_title("See Saw")
 	make_perfview
-	set_ui_height_px(256)
+	set_ui_height_px(80)
 	set_ui_width_px(640)
 
 	{*Distortion*}
@@ -34,7 +34,7 @@ on init
 	set_knob_defval($reverb_knob,500000)
 	$reverb_knob := 500000
 	set_control_help ($reverb_knob,"Reverb: Sets the amount of reverb")
-	move_control($reverb_knob,1,4)
+	move_control($reverb_knob,2,2)
 	set_knob_defval($reverb_knob,0)
     set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, $reverb_knob, -1, 1, 1)
 	set_knob_label($reverb_knob, get_engine_par_disp($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, -1, 1, 1))
