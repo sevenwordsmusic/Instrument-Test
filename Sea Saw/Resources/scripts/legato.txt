@@ -1,0 +1,2296 @@
+{***********************************************
+Unisono - Portamento
+Author : Native Instruments
+Written by: Nicki Marinic, Josef Natterer
+Modified: August 3, 2009
+*************************************************}
+
+on init
+	message("")
+	
+	set_ui_height(5)
+	set_script_title("Unisono - Portamento")
+	
+	declare $count
+
+	declare ui_value_edit $MIN_KEY (0,127,0)
+	set_control_help ($MIN_KEY,"Sets the keyrange for the entire <Unisono - Portamento> module, e.g. useful when keyswitch notes should not be affected.")
+	declare ui_value_edit $MAX_KEY (0,127,0)
+	set_control_help ($MAX_KEY,"Sets the keyrange for the entire <Unisono - Portamento> module, e.g. useful when keyswitch notes should not be affected.")
+	
+	$MIN_KEY := 0
+	$MAX_KEY := 127
+	make_persistent($MIN_KEY)
+	make_persistent($MAX_KEY)
+	
+	set_text($MIN_KEY,"Min")
+	set_text($MAX_KEY,"Max")
+	
+	{CAN BE DELETED?}
+	declare const $Dynamic := 0 
+	declare const $hum_Velocity := 0
+	declare const $hum_Volume := 0
+	declare const $hum_Tuning := 0
+	declare const $hum_Pan := 0
+	declare const $key_knob := 0
+	declare const $Amount := 0
+	declare $helper_tune
+	
+    
+    SET_CONDITION(NO_SYS_SCRIPT_PEDAL)
+
+	declare const $SPREAD_OPT := 0
+	declare const $VOL_REDUCE := -1000
+	
+	declare const $TUNE_MAX := 100000    
+	declare const $UNISONO_TUNE_MODE := 2
+	
+	declare const $FADE_OUT_DEFAULT := 10000
+	declare const $FADE_OUT_PIANO := 15000
+	
+	{GUI CONTROLS}
+	
+	declare ui_button $Expert
+	move_control ($Expert,6,2)
+	set_control_help($Expert,"Expert: Click to access the expert view.")
+	
+	{DEFAULT VIEW}
+	
+		{MONO }
+		
+		declare ui_label $mono_label(3,1)
+		declare ui_knob $mono_mode_knob (0,3,1)
+		declare ui_button $mono_key_up_button
+	
+		declare ui_menu $mono_prio_menu
+		declare ui_label $mono_prio_label (1,1)
+		
+		{PORTAMENTO }
+		declare ui_label $portamento_label(3,1)
+		declare ui_knob $portamento_knob (0,2,1)
+		declare ui_knob $porta_combi_knob (0,127,1)
+{		declare ui_knob $porta_rel_knob (0,127,1)
+		declare ui_knob $porta_abs_knob (0,127,1)}
+		declare ui_button $porta_rel_glide_button
+		
+		{UNISONO }
+		
+		declare ui_label $uni_label(3,1)
+		declare ui_knob $uni_voices_knob (1,8,1)
+		declare ui_knob $uni_detune_knob (0,100,1)
+		declare ui_knob $uni_spread_knob (0,100,1)
+    
+		{ARRAY WITH IDs OF DEFAULT VIEW}
+		
+		declare const $NUM_DEFAULT_VIEW := 13
+		
+		declare %default_view_id[$NUM_DEFAULT_VIEW]
+		%default_view_id[0] := get_ui_id($mono_label)
+		%default_view_id[1] := get_ui_id($mono_mode_knob)
+		%default_view_id[2] := get_ui_id($mono_key_up_button)
+		%default_view_id[3] := get_ui_id($mono_prio_menu)
+		%default_view_id[4] := get_ui_id($mono_prio_label)
+		
+		%default_view_id[5] := get_ui_id($portamento_label)
+		%default_view_id[6] := get_ui_id($portamento_knob)
+		%default_view_id[7] := get_ui_id($porta_combi_knob)
+		%default_view_id[8] := get_ui_id($porta_rel_glide_button)
+		%default_view_id[9] := get_ui_id($uni_label)
+		
+		%default_view_id[10] := get_ui_id($uni_voices_knob)
+		%default_view_id[11] := get_ui_id($uni_detune_knob)
+		%default_view_id[12] := get_ui_id($uni_spread_knob)
+    
+		{POSITIONING OF DEFAULT VIEW}
+		
+		{Mono}
+		move_control($mono_label,2,3)
+		move_control($mono_mode_knob,2,4)
+		move_control($mono_key_up_button,3,5)
+		move_control($mono_prio_label,4,4)
+		move_control($mono_prio_menu,4,5)
+		
+		{Portamento}
+		move_control ($portamento_label,1,7)
+		move_control($portamento_knob,1,8)
+		
+		move_control($porta_rel_glide_button,3,9)
+		move_control($porta_combi_knob,2,8)
+		
+		{Unisono}
+		move_control ($uni_label,4,7)
+		move_control($uni_voices_knob,4,8)
+		move_control($uni_detune_knob,5,8)
+		move_control($uni_spread_knob,6,8)
+	
+    
+    
+	{EXPERT VIEW}
+	
+		{Mono Options}
+		declare ui_label $mono_options_label (6,1)
+		declare ui_label $mono_amp_rel_label (1,1)
+		declare ui_button $mono_amp_rel_button
+		declare ui_label $mono_leg_label (1,1)
+		declare ui_menu $mono_leg_menu
+		declare ui_label $mono_sus_label (1,1)
+		declare ui_menu $mono_sus_menu
+		declare ui_label $mono_retrig_velo_label (1,1)
+		declare ui_menu $mono_retrig_velo_menu
+		
+		declare ui_knob $mono_fade_out_knob (0,2000,1)
+		declare ui_knob $mono_fade_in_knob (0,2000,1)
+		
+		{Voice Management}
+		
+		declare ui_label $voice_options_label (4,1)
+		declare ui_label $voice_man_label (1,1)
+		declare ui_label $voice_keyclick_label (1,1)
+		declare ui_menu $voice_keyclick_menu
+		declare ui_menu $voice_menu
+		declare ui_knob $voice_fade_sw_knob (0,2000,1000)
+		declare ui_knob $voice_fade_synth_out_knob (0,2000,1000)
+		declare ui_label $keyrange_label (1,1)
+		
+		declare ui_label $det_label (1,1)
+		set_text($det_label,"Chord Detection:")
+		declare ui_value_edit $det (0,100,1)
+		set_text($det,"Time")
+		set_control_help ($det,"Chord Detection Time: Sets the chord detection time in milliseconds. Notes received in that time period will be considered as a single chord. The mono and portamento functionality will work on this complete chord as opposed to one note only.")
+		$det := 0
+		
+		{ARRAY WITH IDs OF EXPERT VIEW}
+		
+		declare const $NUM_EXPERT_VIEW := 23
+		
+		declare %expert_view_id[$NUM_EXPERT_VIEW]
+		%expert_view_id[0] := get_ui_id($mono_amp_rel_label)
+		%expert_view_id[1] := get_ui_id($mono_amp_rel_button)
+		%expert_view_id[2] := get_ui_id($mono_leg_label)
+		%expert_view_id[3] := get_ui_id($mono_leg_menu)
+		%expert_view_id[4] := get_ui_id($mono_sus_label)
+		%expert_view_id[5] := get_ui_id($mono_sus_menu)
+		%expert_view_id[6] := get_ui_id($mono_retrig_velo_label)
+		%expert_view_id[7] := get_ui_id($mono_retrig_velo_menu)
+		%expert_view_id[8] := get_ui_id($voice_man_label)
+		%expert_view_id[9] := get_ui_id($voice_keyclick_label)
+		%expert_view_id[10] := get_ui_id($voice_keyclick_menu)
+		%expert_view_id[11] := get_ui_id($voice_menu)
+		%expert_view_id[12] := get_ui_id($voice_fade_sw_knob)
+		%expert_view_id[13] := get_ui_id($voice_fade_synth_out_knob)
+		%expert_view_id[14] := get_ui_id($mono_fade_in_knob)
+		%expert_view_id[15] := get_ui_id($mono_fade_out_knob)
+		%expert_view_id[16] := get_ui_id($mono_options_label)
+		%expert_view_id[17] := get_ui_id($voice_options_label)
+		%expert_view_id[18] := get_ui_id($keyrange_label)
+		%expert_view_id[19] := get_ui_id($MIN_KEY)
+		%expert_view_id[20] := get_ui_id($MAX_KEY)
+		%expert_view_id[21] := get_ui_id($det)
+		%expert_view_id[22] := get_ui_id($det_label)
+	   
+	   
+		{Positioning of Expert View}
+		
+		move_control ($mono_options_label,1,3)
+		
+		move_control($mono_retrig_velo_label,1,4)
+		move_control($mono_retrig_velo_menu,1,5)
+		move_control($mono_amp_rel_label,2,4)
+		move_control($mono_amp_rel_button,2,5)
+		move_control($mono_sus_label,3,4)
+		move_control($mono_sus_menu,3,5)
+		move_control($mono_leg_label,4,4)
+		move_control($mono_leg_menu,4,5)
+		move_control($mono_fade_in_knob,6,4)
+		move_control($mono_fade_out_knob,5,4)
+		
+		move_control ($voice_options_label,1,7)
+		move_control($voice_man_label,1,8)
+		move_control($voice_menu,1,9)
+		move_control ($voice_keyclick_label,2,8)
+		move_control ($voice_keyclick_menu,2,9)
+		move_control ($voice_fade_sw_knob,2,8)
+		move_control ($voice_fade_synth_out_knob,2,8)
+	
+		move_control ($keyrange_label,5,7)
+		move_control ($MIN_KEY,5,8)
+		move_control ($MAX_KEY,5,9)
+		move_control ($det_label,6,7)
+		move_control ($det,6,8)
+		
+		{Hide Expert View by default}
+		
+		$count := 0
+		while ($count < $NUM_EXPERT_VIEW)
+			set_control_par(%expert_view_id[$count],$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+			inc($count)
+		end while
+   
+	set_text($mono_mode_knob,"Mode")
+	make_persistent($mono_mode_knob)
+	set_control_help ($mono_mode_knob,"Mono Mode: Choose among three mono modes: <On> will always trigger a new sample, <Legato> does not trigger new samples. <Offset> will trigger a new sample with a sample start offset, determined by the length of the previous held note. <Offset> only works in sampler mode!") 
+	
+	declare !mode_name [4]
+	!mode_name[0] := "Off"
+	!mode_name[1] := "On"
+	!mode_name[2] := "Legato"
+	!mode_name[3] := "Offset"
+	
+	{*MODE MONO*}
+	set_knob_defval($mono_mode_knob, 0)
+	$mono_mode_knob := 0
+	{**}
+
+	set_text ($mono_options_label,"Mono Mode - Expert Settings")
+	set_text ($voice_options_label,"Settings for repeated notes with held sustain pedal:")
+	set_text ($keyrange_label,"Key Range:")
+	
+	set_text ($portamento_knob,"Mode")
+	set_control_help ($portamento_knob,"Portamento Mode: Choose among two portamento modes. When <Auto> is selected, only legato played notes will be played portamento.")
+	make_persistent($portamento_knob)
+	
+	declare !Portamento_knob_name [3]
+	!Portamento_knob_name[0] := "Off"
+	!Portamento_knob_name[1] := "On"
+	!Portamento_knob_name[2] := "Auto"
+	
+	{*MODE PORTAMENTO*}
+	set_knob_defval($portamento_knob, 2)
+	$portamento_knob := 2
+	{**}
+
+	declare %pressed_id[128]
+	declare %pressed_velo[128]
+	declare %last_id[128]
+	declare %last2_id[128]
+	declare %hold_arr[128]
+	declare %sos_state[128]
+	declare %rel_id[128]
+	declare %id_arr[512]
+	declare %note_arr[512]
+	declare %velo_arr[512]
+	declare %time_arr[512]
+	declare $cursor
+	declare $hold_nr
+
+	declare $func_cc_note_off
+	declare $flag_nr_cc
+	declare $event_kill_mode
+	declare %last_cc[128]
+
+	declare $mono_nr
+	declare $MAX_MONO_NR := 2
+	declare $a
+	
+	
+	add_menu_item($mono_leg_menu,"Off",-1)
+	$a := 0
+	while($a < $NUM_GROUPS)
+		if (_get_engine_par($ENGINE_PAR_RELEASE_TRIGGER,$a,0,-1) = 0)
+			add_menu_item($mono_leg_menu,group_name($a),$a)
+		end if
+		inc($a)
+	end while
+	make_persistent($mono_leg_menu)
+
+
+	add_menu_item($mono_sus_menu,"Off",-1)
+	$a := 0
+	while($a < $NUM_GROUPS)
+		if (_get_engine_par($ENGINE_PAR_RELEASE_TRIGGER,$a,0,-1) = 0)
+			add_menu_item($mono_sus_menu,group_name($a),$a)
+		end if
+		inc($a)
+	end while
+	make_persistent($mono_sus_menu)
+	
+	declare $helper
+	declare $helper2
+	declare $help_id
+	declare $kill_index
+	declare $make_change_tune
+	declare $last_note_helper := -1
+	declare $last_note := -1
+	declare $portamento 
+	declare $ziel_pos
+	declare $vol_helper
+	declare $auto
+	declare $b
+	declare polyphonic $poly_tune_diff
+	declare polyphonic $poly_cur_diff
+	declare polyphonic $poly_interv
+	declare polyphonic $poly_id
+	declare polyphonic $poly_direction
+	declare polyphonic $poly_checker
+	declare $loop_counter
+	declare %fadeid_arr[512]
+	declare %fadenote_arr[512]
+	declare %fade_checker[128]
+	declare $fade_cursor
+	declare $tune_diff
+	declare $cur_diff
+	declare $cur_pos := 6000000
+	declare $interv
+	declare $direction
+	declare $this_id
+	declare $note_length := 10000
+	declare $mono_start_time
+	declare $sample_offset
+	
+	
+	set_text ($mono_label,"Mono Mode")
+	set_text ($portamento_label,"Portamento")
+	set_text ($uni_label,"Unisono")
+	
+	set_text($voice_man_label,"Select Type:")
+	set_control_help ($voice_man_label,"Voice Management: Choose among four different voice management types. The different voice management types define what happens with repeated notes while the sustain pedal is held.")
+	set_text($mono_prio_label,"Note Priority:")
+	set_control_help ($mono_prio_label,"Note Priority: Defines which note is played when releasing a key, while a different note is held. Only availabe when <Key-Up Action> is set to <Trigger Note>.") 
+	
+	set_text($mono_amp_rel_label,"Amp Release:")
+	set_control_help ($mono_amp_rel_label,"Play Release: When enabled, the release part of the ADSR will always be played, i.e. legato played notes will receive a note off as opposed to be faded out.")
+	
+	set_text ($mono_key_up_button,"Key-Up Trigger")
+	set_control_help ($mono_key_up_button,"Key-Up Trigger: if activated, notes are triggered upon release while other notes aref being held.")
+	
+	set_text($mono_retrig_velo_label,"Retrigger Velo:")
+	set_control_help ($mono_retrig_velo_label,"Retrigger Velo: Defines the velocity of the retriggered note when <Key-Up Action> is set to <Trigger Note>.") 
+
+	
+	set_control_help ($mono_sus_menu,"1st Note Group: Sets the group for the first played note.")
+	set_control_help ($mono_leg_menu,"Legato Group: Sets the group for the legato played notes.") 
+	
+	set_text($mono_sus_label,"1st Note Group:")
+	set_control_help ($mono_sus_label,"1st Note Group: Sets the group for the first played note.") 
+
+
+	set_text($mono_leg_label,"Legato Group")
+	set_control_help ($mono_leg_label,"Legato Group: Sets the group for the legato played notes.") 
+	
+	set_text($voice_fade_synth_out_knob,"Fade")
+	set_control_help ($voice_fade_synth_out_knob,"Fade Out: Specifies the fade out time of repeated notes while the sustain pedal is being held.")
+	
+	set_text($porta_combi_knob,"Time")
+	declare $GlideRel := 200
+	$porta_combi_knob := 64
+	set_control_help ($porta_combi_knob,"Time: Sets the glide time between notes when Portamento is on. With <Relative> enabled, the glide time will increase with the note interval, otherwise the glide time will stay constant regardless of the interval.")
+	declare $GlideAbs := 500
+
+	
+	declare $fade_sw := 50000
+	$voice_fade_sw_knob := $fade_sw/1000
+	set_text($voice_fade_sw_knob,"X Fade")
+	set_control_help ($voice_fade_sw_knob,"X Fade: Specifies the crossfade time between retriggered notes.")
+
+	
+	declare $fade_synth_out := 50000
+	$voice_fade_synth_out_knob := $fade_synth_out/1000
+	
+	$mono_key_up_button := 1
+	
+	set_text($mono_fade_out_knob,"Fade Out")
+	$mono_fade_out_knob := 0
+	set_control_help ($mono_fade_out_knob,"Fade Out: Sets the fade out time of previous notes. Only works when <Vol Env Release> is disabled.")
+
+	declare $Fadeout := 10
+
+	
+	set_text($mono_fade_in_knob,"Fade In")
+	$mono_fade_in_knob := 0
+	set_control_help ($mono_fade_in_knob,"Fade In: Sets the fade in time of new notes. Only works when <Vol Env Release> is disabled.")
+
+	declare $Fadein := 10
+	
+	declare $ALLOWED_NOTE_NR := 10000
+	declare $ALLOWED_event_NR := 10000
+		
+	set_control_help ($porta_rel_glide_button,"Relative: When selected, the glide time will increase with the interval.")
+	
+	
+	set_text($porta_rel_glide_button,"Relative")
+	$porta_rel_glide_button := 0
+	
+	declare $MaxHold := 1
+	
+	declare $auto_button
+	declare $portamento_button
+			
+	
+	add_menu_item($voice_menu,"Off",0)
+	add_menu_item($voice_menu,"Type: Organ",1)
+	add_menu_item($voice_menu,"Type: Strings",2)
+	add_menu_item($voice_menu,"Type: Synth",3)
+	add_menu_item($voice_menu,"Type: Piano",4)
+	set_control_help ($voice_menu,"Choose among the following voice management types: Organ: Only notes of the <Key Click Group> will be retriggered. Strings: Only one note per key will be played, the crossfade between two notes can be specified with the <Transition> knob.")
+
+   
+    add_menu_item($mono_prio_menu,"Last Note",1)
+    add_menu_item($mono_prio_menu,"Next Note",0)
+    add_menu_item($mono_prio_menu,"Low Note",2)
+    add_menu_item($mono_prio_menu,"High Note",3)
+	$mono_prio_menu := 1
+	set_control_help ($mono_prio_menu,"Note Priority: Defines which note is played when releasing a key, while a different note is held. Only availabe when <Key-Up Action> is set to <Trigger Note>.") 
+	declare $last_prio_menu
+	make_persistent($last_prio_menu)
+	
+	declare $mono_button
+
+	$count := 0
+	add_menu_item ($voice_keyclick_menu,"n/a",-1)
+	while ($count < $NUM_GROUPS)
+		add_menu_item ($voice_keyclick_menu,group_name($count),$count)
+		inc ($count)
+	end while
+	set_control_help($voice_keyclick_menu," Key Click Group: Samples of this group will be retriggered.")
+	
+	
+	set_text ($voice_keyclick_label,"Key Click Group:")
+	set_control_help($voice_keyclick_label," Key Click Group: Samples of this group will be retriggered.")
+
+   
+    set_text($mono_amp_rel_button,"Vol Env Release")
+    set_control_help($mono_amp_rel_button,"Vol Env: When enabled, the release part of the ADSR will always be played, i.e. legato played notes will receive a note off as opposed to be faded out.")
+    
+    
+    add_menu_item ($mono_retrig_velo_menu, "First Note", 0)
+    add_menu_item ($mono_retrig_velo_menu, "Last Note", 1)
+    set_control_help ($mono_retrig_velo_menu,"Retrigger Velo: Defines the velocity of the retriggered note when <Key-Up Action> is set to <Trigger Note>.") 
+	declare $last_velo_menu
+	make_persistent($last_velo_menu)
+
+	declare $legato_button
+
+	set_text($uni_voices_knob,"Voices")
+	set_control_help ($uni_voices_knob,"Voices: Adjusts the number of voices played when pressing a key.")
+	
+	$uni_detune_knob := 30
+	set_text($uni_detune_knob,"Detune")
+	set_knob_unit($uni_detune_knob,$KNOB_UNIT_PERCENT)
+	set_control_help ($uni_detune_knob,"Detune: Adjusts the detuning between voices.")
+	
+	$uni_spread_knob := 70
+	set_text($uni_spread_knob,"Spread")
+	set_knob_unit($uni_spread_knob,$KNOB_UNIT_PERCENT)
+	set_control_help ($uni_spread_knob,"Spread: Adjusts the panorama spreading between voices.")
+	
+	declare $mmin
+	declare $mplus
+	declare $mono 
+	declare $last_mono
+	declare $mono_id
+	declare $last_mono_id
+	declare $mono_note
+	declare $mono_pos
+	declare $virt_velo
+	declare $legato
+	declare %bad_retrigger_id[128]
+	declare $bad_active
+	declare %multi_id_arr[512]
+	declare %multi_ix_array[512]
+	declare %multi_note_arr[512]
+	declare %multi_trans_arr[512]
+	declare %multi_orig_id_arr[512]
+	declare %multi_orig_note_arr[512]
+	declare $multi_cursor
+	declare %multi_func_para[512]
+	declare %multi_func_id[512]
+	declare %multi_func_type[512]
+	declare $ma
+	declare $n_helper
+	declare $c
+	declare $mf_cursor
+	declare $multi_helper
+	declare $ignore_multi
+	declare %transp_array[512] := (0)
+	declare %tuning_array[512]
+	declare %pan_array[512]
+	$uni_voices_knob := 1
+	declare $int_voices
+	declare polyphonic $no_release_callback
+	declare polyphonic $exit_after_portamento
+	declare $new_tune
+	declare $new_vol
+	declare $new_pan
+	declare $new_velo := 1
+	declare $new_time
+	declare $multi_check_time
+	declare $multi2_check_time
+	declare $multi_check_id
+	declare $multi_check_note
+	declare $verschiebung
+	declare $c_pan
+	declare $orig_off_id
+	
+	
+	
+	make_persistent($det)
+	make_persistent($uni_voices_knob)
+	make_persistent($uni_detune_knob)
+	make_persistent($uni_spread_knob)
+	make_persistent($mono_retrig_velo_menu)
+	make_persistent($voice_fade_synth_out_knob)
+	make_persistent($fade_synth_out)
+	make_persistent($mono_key_up_button)
+	make_persistent($fadein)
+	make_persistent($mono_fade_in_knob)
+	make_persistent($fadeout)
+	make_persistent($mono_fade_out_knob)
+	
+	make_persistent($voice_menu)
+	make_persistent($MaxHold)
+	make_persistent($mono_prio_menu)
+	make_persistent($voice_fade_sw_knob)
+	make_persistent($fade_sw)
+	make_persistent($note_length)
+	make_persistent($mono)
+	make_persistent($mono_retrig_velo_menu)
+	make_persistent($mono_amp_rel_button)
+	make_persistent($mono_button)
+	make_persistent($voice_keyclick_menu)
+	make_persistent($legato_button)
+	make_persistent($legato)
+	make_persistent($Gliderel)
+	make_persistent($porta_combi_knob)
+	make_persistent($Glideabs)
+	make_persistent($allowed_note_nr)
+	make_persistent($allowed_event_nr)
+	make_persistent($event_kill_mode)
+	make_persistent($auto_button)
+	make_persistent($auto)
+	make_persistent($portamento_button)
+	make_persistent($portamento)
+	
+	make_persistent($porta_rel_glide_button)
+	make_persistent($portamento)
+	make_persistent($mono_amp_rel_button)
+	
+
+
+	_read_persistent_var($voice_menu)
+	_read_persistent_var($porta_rel_glide_button)
+	
+	
+	
+	_read_persistent_var($Glideabs)
+	_read_persistent_var($porta_combi_knob)
+	_read_persistent_var($fadein)
+	_read_persistent_var($mono_fade_in_knob)
+	_read_persistent_var($fadeout)
+	_read_persistent_var($mono_fade_out_knob)
+	if ($fadein < 1000)
+		set_knob_label($mono_fade_in_knob,($fadein-10)/1000&"."&(($fadein-10) mod 1000)/100&(($fadein-10) mod 100)/10&" s")
+	else
+		set_knob_label($mono_fade_in_knob,($fadein-10)/1000&"."&(($fadein-10) mod 1000)/100&" s")	
+	end if	
+	if ($fadeout < 1000)
+		set_knob_label($mono_fade_out_knob,($fadeout-10)/1000&"."&(($fadeout-10) mod 1000)/100&(($fadeout-10) mod 100)/10&" s")
+	else
+		set_knob_label($mono_fade_out_knob,($fadeout-10)/1000&"."&(($fadeout-10) mod 1000)/100&" s")	
+	end if	
+	_read_persistent_var($voice_fade_synth_out_knob)
+	_read_persistent_var($fade_synth_out)
+	$a := $voice_fade_synth_out_knob/10
+	$fade_synth_out := ($a*$a*2000)/(200*200)
+	if ($fade_synth_out < 1000)
+		set_knob_label($voice_fade_synth_out_knob,$fade_synth_out/1000&"."&($fade_synth_out mod 1000)/100&($fade_synth_out mod 100)/10&" s")
+	else
+		set_knob_label($voice_fade_synth_out_knob,$fade_synth_out/1000&"."&($fade_synth_out mod 1000)/100&" s")	
+	end if	
+	$fade_synth_out := $fade_synth_out*1000
+	_read_persistent_var($voice_fade_sw_knob)
+	_read_persistent_var($fade_sw)
+	$a := $voice_fade_sw_knob/10
+	$fade_sw := ($a*$a*2000)/(200*200)
+	if ($fade_sw < 1000)
+		set_knob_label($voice_fade_sw_knob,$fade_sw/1000&"."&($fade_sw mod 1000)/100&($fade_sw mod 100)/10&" s")
+	else
+		set_knob_label($voice_fade_sw_knob,$fade_sw/1000&"."&($fade_sw mod 1000)/100&" s")	
+	end if	
+	$fade_sw := $fade_sw*1000
+	_read_persistent_var($mono_mode_knob)
+	set_knob_label($mono_mode_knob,!Mode_name[$mono_mode_knob])		
+	_read_persistent_var($portamento_knob)
+	set_knob_label($portamento_knob,!Portamento_knob_name[$portamento_knob])		
+	_read_persistent_var($mono_button)
+	_read_persistent_var($legato_button)
+	_read_persistent_var($mono_key_up_button)
+	_read_persistent_var($mono_amp_rel_button)
+	if ($legato_button = 0)
+		set_text($mono_amp_rel_label,"Amp Release:")
+	else
+		set_text($mono_amp_rel_label,"n/a")
+	end if
+	
+	
+	if ($mono_amp_rel_button = 0 and $legato_button = 0)
+		set_text($mono_fade_out_knob,"Fade Out")	
+		set_text($mono_fade_in_knob,"Fade In")	
+	else
+		set_text($mono_fade_out_knob,"n/a")	
+		set_text($mono_fade_in_knob,"n/a")	
+	end if
+
+	{flags wich check current voice mangement options for the harmonized notes}
+	declare $organ_block := 0
+	declare $string_fade := 0
+	declare $dynamic_maker := 0
+	declare $test
+	declare $orig_tune
+	declare $orig_pan
+	declare $orig_vol
+	declare $orig_tune_2
+	declare $orig_pan_2
+	declare $orig_vol_2
+	_read_persistent_var($porta_rel_glide_button)
+	select ($porta_combi_knob)
+		case 0 to 31
+			$GlideRel := ($porta_combi_knob * 80)/32
+		case 32 to 63
+			$GlideRel := (($porta_combi_knob-32) * 120)/32 + 80
+		case 64 to 95
+			$GlideRel := (($porta_combi_knob-64) * 200)/32 + 200
+		case 96 to 127
+			$GlideRel := (($porta_combi_knob-96) * 2600)/31 +400
+	end select
+	$GlideAbs := ($porta_combi_knob*$porta_combi_knob*2000)/(127*127)
+	{if ($porta_rel_glide_button = 1)
+		set_knob_label($porta_combi_knob,$GlideRel)		
+	else
+		if ($GlideAbs < 1000)
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&($GlideAbs mod 100)/10&" s")
+		else
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&" s")	
+		end if	
+	end if}
+end on
+
+{PGS STUFF}
+
+
+
+
+on note
+	if (not in_range($EVENT_NOTE,$MIN_KEY,$MAX_KEY))
+		exit
+	end if
+	
+	if ($mono_leg_menu >= 0)
+		disallow_group($mono_leg_menu)
+	end if
+	if ($det > 0 and ($mono = 1 or $portamento = 1))
+		if ($ENGINE_UPTIME - $multi_check_time < $det)
+			ignore_event($EVENT_ID)
+			if ($organ_block = 1)
+				$no_release_callback := $EVENT_ID
+				exit
+			end if
+			if ($mono_leg_menu >= 0)
+				disallow_group($mono_leg_menu)
+			end if
+			if ($mono_sus_menu >= 0)
+				allow_group($mono_sus_menu)
+			end if
+			$orig_tune_2 := get_event_par($EVENT_ID,$EVENT_PAR_TUNE)
+			$orig_pan_2 := get_event_par($EVENT_ID,$EVENT_PAR_PAN)
+			$orig_vol_2 := get_event_par($EVENT_ID,$EVENT_PAR_VOLUME)
+
+			$a := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+			change_tune ($a, $new_tune + $orig_tune_2, 1)
+			change_vol ($a, $new_vol + $orig_vol_2, 1)
+			change_pan($a,$new_pan + $orig_pan_2,1)
+			%multi_id_arr[$multi_cursor] := $a
+			%multi_ix_array[$multi_cursor] := 0
+			%multi_trans_arr[$multi_cursor] := $EVENT_NOTE - $multi_check_note
+			%multi_note_arr[$multi_cursor] := $EVENT_NOTE
+			if ($mono = 1)
+				%multi_orig_id_arr[$multi_cursor] := $mono_id
+				if ($auto = 0 and $portamento = 1)
+					change_tune($a,$mono_pos - $multi_check_note*100000,1)
+				end if
+			else
+				if (($auto = 0 or $hold_nr > 1) and $portamento = 1)
+					change_tune($a,$cur_pos - $multi_check_note*100000,1)			
+				end if
+				%multi_orig_id_arr[$multi_cursor] := $multi_check_id
+			end if
+			
+			%multi_orig_note_arr[$multi_cursor] := $multi_check_note
+			if ($string_fade = 1)
+				fade_out(%multi_id_arr[$multi_cursor],1,0)
+				fade_in(%multi_id_arr[$multi_cursor],$Fade_sw)
+			end if
+			if ($dynamic_maker = 1)
+				change_vol(%multi_id_arr[$multi_cursor],$vol_helper,1)
+			end if
+			$no_release_callback := $EVENT_ID
+			
+				if ($int_voices > 1)
+					change_tune(%multi_id_arr[$multi_cursor],%tuning_array[0]- $orig_tune_2,1)
+					change_pan(%multi_id_arr[$multi_cursor],%pan_array[0],1)
+					change_vol(%multi_id_arr[$multi_cursor],$VOL_REDUCE*($int_voices-1),1)		
+				end if
+				inc($multi_cursor)
+			
+				$a := 1  
+				while($a < $int_voices )
+					$b := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+					change_tune($b,%tuning_array[$a]+$new_tune,1)
+					change_pan($b,%pan_array[$a],1)		
+					change_pan($b,$new_pan,1)
+					change_vol($b,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+
+					%multi_id_arr[$multi_cursor] := $b
+					%multi_ix_array[$multi_cursor] := $a
+					%multi_note_arr[$multi_cursor] := $EVENT_NOTE
+					%multi_trans_arr[$multi_cursor] := $EVENT_NOTE - $multi_check_note
+					if ($string_fade = 1)
+						fade_out(%multi_id_arr[$multi_cursor],1,0)
+						fade_in(%multi_id_arr[$multi_cursor],$Fade_sw)
+					end if
+					if ($dynamic_maker = 1)
+						change_vol(%multi_id_arr[$multi_cursor],$vol_helper,1)
+					end if
+					if ($mono = 1)
+						%multi_orig_id_arr[$multi_cursor] := $mono_id
+						if ($auto = 0 and $portamento = 1)
+							change_tune($b,$mono_pos - $multi_check_note*100000,1)
+						end if
+					else
+						if (($auto = 0 or $hold_nr > 1) and $portamento = 1)
+							change_tune($b,$cur_pos - $multi_check_note*100000,1)			
+						end if
+						%multi_orig_id_arr[$multi_cursor] := $multi_check_id
+					end if
+					%multi_orig_note_arr[$multi_cursor] := $multi_check_note
+					inc($multi_cursor)
+					inc($a)
+				end while
+			exit
+		else
+			$string_fade := 0
+			$dynamic_maker := 0
+		end if
+		$organ_block := 0
+		if (($hold_nr = 0 or $mono = 0) and $det > 0)
+			$multi_check_time := $ENGINE_UPTIME
+			$multi_check_id := $EVENT_ID
+			$multi_check_note := $EVENT_NOTE
+		end if
+		if ($mono = 1)
+			if ($ENGINE_UPTIME - $multi2_check_time < $det)
+				ignore_event($EVENT_ID)
+				$no_release_callback := $EVENT_ID
+				exit		
+			end if
+			if ($det > 0)
+				$multi2_check_time := $ENGINE_UPTIME
+			end if
+		end if
+	end if
+	set_event_par($EVENT_ID,0,0)
+	%pressed_id[$EVENT_NOTE] := $EVENT_ID
+	%pressed_velo[$EVENT_NOTE] := $EVENT_VELOCITY
+	%last_id[$EVENT_NOTE] := $EVENT_ID
+	$last_note  := $last_note_helper
+	$last_note_helper := $EVENT_NOTE
+	if (%hold_arr[$EVENT_NOTE] = 0)
+		inc($hold_nr)
+	end if
+	inc(%hold_arr[$EVENT_NOTE])
+	%id_arr[$cursor] := $EVENT_ID
+	%note_arr[$cursor] := $EVENT_NOTE
+	%velo_arr[$cursor] := $EVENT_VELOCITY
+	%time_arr[$cursor] := $ENGINE_UPTIME
+	$orig_tune := get_event_par($EVENT_ID,$EVENT_PAR_TUNE)
+	$orig_pan := get_event_par($EVENT_ID,$EVENT_PAR_PAN)
+	$orig_vol := get_event_par($EVENT_ID,$EVENT_PAR_VOLUME)
+	%sos_state[$EVENT_NOTE] := %sos_state[$EVENT_NOTE] .or. 4
+	inc($cursor)
+	$poly_id := $EVENT_ID
+	
+	
+	{**** Multi Part ****}
+	$a := 0
+	$b := $multi_cursor
+	$multi_cursor := 0
+	while($a < $b)
+		if (event_status(%multi_id_arr[$a]) > 0)
+			%multi_id_arr[$multi_cursor] := %multi_id_arr[$a]
+			%multi_note_arr[$multi_cursor] := %multi_note_arr[$a]
+			%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$a]
+			%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$a]
+			%multi_ix_array[$multi_cursor] := %multi_ix_array[$a]
+			%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$a]
+			inc($multi_cursor)
+		end if
+		inc($a)
+	end while
+	$int_voices := $uni_voices_knob
+
+	%tuning_array[0] := $orig_tune
+	%pan_array[0] := $orig_pan
+
+	if ($int_voices > 1)
+		if ($UNISONO_TUNE_MODE = 1 )
+			%tuning_array[0] := -(($uni_detune_knob * $TUNE_MAX)/200) * ($int_voices-1)
+		else
+			%tuning_array[0] := -(($uni_detune_knob * $TUNE_MAX)/200)
+		end if
+		change_tune($EVENT_ID,%tuning_array[0],1)
+		%tuning_array[0] := %tuning_array[0] + $orig_tune
+		if ($SPREAD_OPT = 1)
+			if ($int_voices > 1)
+				%pan_array[0] := -$uni_spread_knob*10
+			else
+				%pan_array[0] := 0
+			end if		
+		else
+			%pan_array[0] := 0
+			if ($int_voices mod 2 = 0)
+				%pan_array[0] := -$uni_spread_knob*10
+			end if
+		end if
+		change_pan($EVENT_ID,%pan_array[0],0)
+		change_pan($EVENT_ID,$new_pan,1)
+		change_vol($EVENT_ID,$VOL_REDUCE*($int_voices-1),1)		
+	end if
+	$a := 1  
+	while($a < $int_voices )
+		$b := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+		if ($UNISONO_TUNE_MODE = 1 )
+			%tuning_array[$a] :=  (($uni_detune_knob * $TUNE_MAX*$a)/100)-(($uni_detune_knob * $TUNE_MAX)/200) * ($int_voices-1) + $orig_tune
+		else
+			%tuning_array[$a] := (($uni_detune_knob * $TUNE_MAX*$a)/100)/($int_voices-1)-(($uni_detune_knob * $TUNE_MAX)/100)/2	 + $orig_tune	
+		end if
+		if ($SPREAD_OPT = 1)
+			%pan_array[$a] := ((2*$uni_spread_knob*$a)/($int_voices-1)-$uni_spread_knob)*10		 + $orig_pan
+		else
+			if ($a mod 2 = 0)
+				%pan_array[$a] := -$uni_spread_knob*10 + $orig_pan
+			else
+				%pan_array[$a] := $uni_spread_knob*10 + $orig_pan
+			end if
+		end if
+		change_tune($b,%tuning_array[$a]+$new_tune,1)
+		change_pan($b,%pan_array[$a],1)		
+		change_pan($b,$new_pan,1)
+		change_vol($b,$VOL_REDUCE*($int_voices-1)+$new_vol+$orig_vol,1)		
+		%multi_id_arr[$multi_cursor] := $b
+		%multi_ix_array[$multi_cursor] := $a
+		%multi_note_arr[$multi_cursor] := $EVENT_NOTE
+		%multi_orig_id_arr[$multi_cursor] := $EVENT_ID
+		%multi_orig_note_arr[$multi_cursor] := $EVENT_NOTE
+		%multi_trans_arr[$multi_cursor] := 0
+		inc($multi_cursor)
+		inc($a)
+	end while
+	$mf_cursor := 0
+	
+	{**** Multi Part ****}	
+	if ($mono = 1)
+		if ($mono_leg_menu >= 0)
+			disallow_group($mono_leg_menu)
+		end if
+		if ($mono_sus_menu >= 0)
+			allow_group($mono_sus_menu)
+		end if
+		if ($last_mono # $mono)
+			$a := 0 
+			$helper := 500
+			$helper2 := 0
+			while($a < $cursor)
+				if (abs($EVENT_NOTE - %note_arr[$a]) < abs($EVENT_NOTE - $helper) and %note_arr[$a] # $EVENT_NOTE)
+					$helper := %note_arr[$a]
+					$helper2 := $a
+				end if
+				inc($a)
+			end while
+			if ($helper < 128)
+				$mono_id := %id_arr[$helper2]
+				$mono_pos := %note_arr[$helper2] * 100000
+				$mono_note := %note_arr[$helper2]
+				$a := 0
+				while($a < $cursor)
+					if ($EVENT_ID # %id_arr[$a])
+						if ($mono_id # %id_arr[$a] and $EVENT_ID # %id_arr[$a])
+							fade_out(%id_arr[$a],$FADE_OUT_DEFAULT,1)
+								%multi_func_id[$mf_cursor] := %id_arr[$a]
+								%multi_func_type[$mf_cursor] := 1
+								inc($mf_cursor)
+						else
+							%id_arr[0] := %id_arr[$a]
+							%note_arr[0] := %note_arr[$a]
+							%velo_arr[0] := %velo_arr[$a]
+							%time_arr[0] := %time_arr[$a]
+							$mono_id := %id_arr[$a]
+							$mono_note := %note_arr[$a]
+							$mono_pos := %note_arr[$a]*100000
+						end if
+					end if
+					inc($a)
+				end while
+				$cursor := 1
+				$orig_off_id := $mono_id
+			else
+				$mono_pos := $EVENT_NOTE * 100000
+			end if
+		end if
+		$last_mono_id := $mono_id
+		if ($mono_id = 0)
+			$mono_start_time := $ENGINE_UPTIME
+			if ($mono_key_up_button = 1 and $legato = 0)
+				if ($mono_leg_menu >= 0)
+					disallow_group($mono_leg_menu)
+				end if
+				if ($mono_sus_menu >= 0)
+					allow_group($mono_sus_menu)
+				end if
+				$mono_id := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+				set_event_par($mono_id,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+				change_tune($mono_id,%tuning_array[0]+$new_tune,1)
+				change_pan($mono_id,%pan_array[0],1)
+				change_pan($mono_id,$new_pan,1)
+				change_vol($mono_id,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+				if ($Auto > 0)
+					$mono_pos := $EVENT_NOTE * 100000 + $new_tune
+				end if
+				$mono_note := $EVENT_NOTE
+				ignore_event($EVENT_ID)				
+					$ma := 0
+					while($ma < $multi_cursor)
+						if ($EVENT_ID = %multi_orig_id_arr[$ma])							
+							ignore_event(%multi_id_arr[$ma])
+							if ($EVENT_NOTE + %multi_trans_arr[$ma] > 127)
+								$n_helper := 127
+							else
+								if ($EVENT_NOTE + %multi_trans_arr[$ma] < 0)
+									$n_helper := 0
+								else
+									$n_helper := $EVENT_NOTE + %multi_trans_arr[$ma]										
+								end if
+							end if
+							$a := play_note($n_helper,$EVENT_VELOCITY,0,0)
+							set_event_par($a,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+							change_tune($a,%tuning_array[%multi_ix_array[$ma]]+$new_tune,1)
+							change_pan($a,%pan_array[%multi_ix_array[$ma]],1)
+							change_pan($a,$new_pan,1)
+							change_vol($a,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+							%multi_id_arr[$ma] := $a
+							%multi_note_arr[$ma] := %multi_note_arr[$ma]
+							%multi_orig_id_arr[$ma] := $mono_id
+							%multi_orig_note_arr[$ma] := $EVENT_NOTE
+						end if
+						inc($ma)
+					end while
+				%id_arr[$cursor-1] := $mono_id		
+			else
+				$mono_id := $EVENT_ID
+				if ($Auto > 0 or $portamento = 0)
+					$mono_pos := $EVENT_NOTE * 100000 + $new_tune
+				else
+					if ($legato = 1)
+						change_tune($mono_id,($mono_pos - $EVENT_NOTE * 100000)-$new_tune,1)
+						change_pan($mono_id,$new_pan,1)
+						%multi_func_id[$mf_cursor] := $mono_id
+						%multi_func_para[$mf_cursor] := $mono_pos - $EVENT_NOTE * 100000-$new_tune
+						%multi_func_type[$mf_cursor] := 4
+						inc($mf_cursor)
+					end if
+				end if
+				$mono_note := $EVENT_NOTE
+			end if
+		else
+			if ($mono_leg_menu >= 0)
+				allow_group($mono_leg_menu)
+			end if
+			if ($mono_sus_menu >= 0)
+				disallow_group($mono_sus_menu)
+			end if
+			$helper := $EVENT_NOTE
+			select ($mono_prio_menu)
+				case 2  {low note}
+					$a := 0
+					while($a < $EVENT_NOTE)
+						if (%pressed_id[$a] > 0)							
+							$helper := $a
+							$a := 128
+						end if
+						inc($a)
+					end while
+				case 3  {high note}
+					$a := $EVENT_NOTE
+					while($a < 128)
+						if (%pressed_id[$a] > 0)							
+							$helper := $a
+						end if
+						inc($a)
+					end while
+			end select
+			if ($helper # $EVENT_NOTE)
+				ignore_event($EVENT_ID)
+					$ma := 0
+					while($ma < $multi_cursor)
+						if ($EVENT_ID = %multi_orig_id_arr[$ma])
+							ignore_event(%multi_id_arr[$ma])
+						end if
+						inc($ma)
+					end while
+				exit
+			else
+				if ($mono_key_up_button = 0 and $mono_note # $EVENT_NOTE)
+					%hold_arr[$mono_note] := 0
+					dec($hold_nr)
+				end if
+				if ($legato = 1)
+					ignore_event($EVENT_ID)
+						%multi_func_id[$mf_cursor] := $EVENT_ID
+						%multi_func_type[$mf_cursor] := 3
+						inc($mf_cursor)
+					if ($portamento = 0)
+						change_tune($mono_id,$EVENT_NOTE*100000 - $mono_pos +$new_tune,1 )
+							%multi_func_id[$mf_cursor] := $mono_id
+							%multi_func_para[$mf_cursor] := $EVENT_NOTE*100000 - $mono_pos +$new_tune
+							%multi_func_type[$mf_cursor] := 4
+							inc($mf_cursor)
+						$mono_pos := $EVENT_NOTE *100000+$new_tune
+					end if
+					$mono_note := $EVENT_NOTE
+					%note_arr[0] := $EVENT_NOTE
+				else
+					if ($EVENT_NOTE = $mono_note)
+						select ($voice_menu)
+							case 0 to 1
+								ignore_event($EVENT_ID)
+									%multi_func_id[$mf_cursor] := $EVENT_ID
+									%multi_func_type[$mf_cursor] := 3
+									inc($mf_cursor)
+								if ($voice_keyclick_menu > -1 and $voice_menu = 1)
+									disallow_group(-1)
+									allow_group($voice_keyclick_menu)
+									$a := play_note($EVENT_NOTE,$EVENT_VELOCITY,0,0)
+									set_event_par($a,$EVENT_PAR_TUNE,get_event_par($EVENT_ID,$EVENT_PAR_TUNE))
+									set_event_par($a,$EVENT_PAR_PAN,get_event_par($EVENT_ID,$EVENT_PAR_PAN))
+									set_event_par($a,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+									_will_never_terminate($a)
+								end if
+							case 2
+								fade_out($EVENT_ID,1,0)	{the new note should be mute in the beginning }
+									%multi_func_id[$mf_cursor] := $EVENT_ID
+									%multi_func_type[$mf_cursor] := 5
+									inc($mf_cursor)
+								fade_in($EVENT_ID,$Fade_sw)	{fade in the new note}
+									%multi_func_id[$mf_cursor] := $EVENT_ID
+									%multi_func_para[$mf_cursor] := $fade_sw
+									%multi_func_type[$mf_cursor] := 6
+									inc($mf_cursor)
+								fade_out($mono_id,$Fade_sw,1)
+									%multi_func_id[$mf_cursor] := $mono_id
+									%multi_func_para[$mf_cursor] := $fade_sw
+									%multi_func_type[$mf_cursor] := 7
+									inc($mf_cursor)
+								$vol_helper := ($Dynamic * ($EVENT_VELOCITY - 64)) /64
+								change_vol($EVENT_ID,$vol_helper+$new_vol,1)
+									%multi_func_id[$mf_cursor] := $EVENT_ID
+									%multi_func_para[$mf_cursor] := $vol_helper
+									%multi_func_type[$mf_cursor] := 8
+									inc($mf_cursor)
+								$string_fade := 1
+								$mono_id := $EVENT_ID
+								$mono_note := $EVENT_NOTE
+								$multi_check_time := $ENGINE_UPTIME
+								$multi_check_note := $EVENT_NOTE
+								$multi_check_id := $EVENT_ID
+							case 3
+								fade_out($mono_id,$Fade_synth_out,1)
+									%multi_func_id[$mf_cursor] := $mono_id
+									%multi_func_para[$mf_cursor] := $Fade_synth_out
+									%multi_func_type[$mf_cursor] := 7
+									inc($mf_cursor)
+								$mono_id := $EVENT_ID
+								$mono_note := $EVENT_NOTE
+								$multi_check_time := $ENGINE_UPTIME
+								$multi_check_note := $EVENT_NOTE
+								$multi_check_id := $EVENT_ID
+							case 4
+								if ($Fadeout <10)
+									fade_out($mono_id,$FADE_OUT_PIANO,1)
+										%multi_func_id[$mf_cursor] := $mono_id
+										%multi_func_para[$mf_cursor] := $FADE_OUT_PIANO
+										%multi_func_type[$mf_cursor] := 7
+										inc($mf_cursor)
+								else
+									fade_out($mono_id,($fadeout+5)*1000,1)								
+										%multi_func_id[$mf_cursor] := $mono_id
+										%multi_func_para[$mf_cursor] := $fadeout*1000
+										%multi_func_type[$mf_cursor] := 7
+										inc($mf_cursor)
+								end if
+								$vol_helper := ($Dynamic * ($EVENT_VELOCITY - 64)) /64
+								change_vol($EVENT_ID,$vol_helper+$new_vol,1)
+									%multi_func_id[$mf_cursor] := $EVENT_ID
+									%multi_func_para[$mf_cursor] := $vol_helper
+									%multi_func_type[$mf_cursor] := 8
+									inc($mf_cursor)
+								$mono_id := $EVENT_ID
+								$mono_note := $EVENT_NOTE
+								$multi_check_time := $ENGINE_UPTIME
+								$multi_check_note := $EVENT_NOTE
+								$multi_check_id := $EVENT_ID
+						end select
+					else
+						$multi_helper := $mono_id
+						if ($mono_mode_knob = 3)
+							$Sample_offset := ($ENGINE_UPTIME - $mono_start_time)*1000
+						else
+							$Sample_offset := 0							
+						end if
+						$mono_id := play_note($EVENT_NOTE,$EVENT_VELOCITY,$Sample_offset,0)
+						set_event_par($mono_id,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+						change_tune($mono_id,%tuning_array[0]+$new_tune,1)
+						change_pan($mono_id,%pan_array[0],1)
+						change_pan($mono_id,$new_pan,1)
+						change_vol($mono_id,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+						$mono_note := $EVENT_NOTE
+						ignore_event($EVENT_ID)
+						%id_arr[$cursor-1] := $mono_id		
+						$ma := 0
+							while($ma < $multi_cursor)
+								if ($EVENT_ID = %multi_orig_id_arr[$ma])
+									ignore_event(%multi_id_arr[$ma])
+								end if
+								if ($multi_helper = %multi_orig_id_arr[$ma])
+									if ($EVENT_NOTE + %multi_trans_arr[$ma] > 127)
+										$n_helper := 127
+									else
+										if ($EVENT_NOTE + %multi_trans_arr[$ma] < 0)
+											$n_helper := 0
+										else
+											$n_helper := $EVENT_NOTE + %multi_trans_arr[$ma]										
+										end if
+									end if
+									$a := play_note($n_helper,$EVENT_VELOCITY,$Sample_offset,0)
+									set_event_par($a,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+									change_tune($a,%tuning_array[%multi_ix_array[$ma]]+$new_tune,1)
+									change_pan($a,%pan_array[%multi_ix_array[$ma]],1)
+									change_pan($a,$new_pan,1)
+									change_vol($a,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+									%multi_id_arr[$multi_cursor] := $a
+									%multi_note_arr[$multi_cursor] := $EVENT_NOTE + %transp_array[%multi_ix_array[$ma]]
+									%multi_orig_id_arr[$multi_cursor] := $mono_id
+									%multi_orig_note_arr[$multi_cursor] := $EVENT_NOTE
+									%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+									%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+									inc($multi_cursor)
+								end if
+								inc($ma)
+							end while
+						if ($mono_amp_rel_button = 1 and $last_mono_id # $orig_off_id)
+							note_off($last_mono_id)
+							set_event_par($last_mono_id,0,4)
+							$ma := 0
+							$b := $multi_cursor
+							$multi_cursor := 0
+							while($ma < $b)
+								if ($last_mono_id = %multi_orig_id_arr[$ma])
+									{fade_out(%multi_id_arr[$ma],10000,1)}
+									note_off(%multi_id_arr[$ma])
+									set_event_par(%multi_id_arr[$ma],0,4)
+									{ignore_event(%multi_id_arr[$ma])}
+								else
+									%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+									%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+									%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+									%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+									%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+									%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+									inc($multi_cursor)									
+								end if
+								inc($ma)
+							end while
+						else
+							fade_out($last_mono_id,($Fadeout+5)*1000,1)	
+								$ma := 0
+								$b := $multi_cursor
+								$multi_cursor := 0
+								while($ma < $b)
+									if ($last_mono_id = %multi_orig_id_arr[$ma])
+										fade_out(%multi_id_arr[$ma],($Fadeout+5)*1000,1)
+									else
+										%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+										%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+										%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+										%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+										%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+										%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+										inc($multi_cursor)									
+									end if
+									inc($ma)
+								end while
+							fade_out($mono_id,1,0)	
+								%multi_func_id[$mf_cursor] := $mono_id
+								%multi_func_type[$mf_cursor] := 5
+								inc($mf_cursor)
+							fade_in($mono_id,$Fadein*1000)	
+								%multi_func_id[$mf_cursor] := $mono_id
+								%multi_func_para[$mf_cursor] := $fadein*1000
+								%multi_func_type[$mf_cursor] := 6
+								inc($mf_cursor)
+						end if
+					end if
+				end if
+			end if
+		end if
+		$poly_id := $mono_id
+	else
+		select ($voice_menu)
+			case 1
+				if (%hold_arr[$EVENT_NOTE] > $maxHold)
+					disallow_group(-1)
+					if ($voice_keyclick_menu > -1)
+						allow_group($voice_keyclick_menu)
+					end if
+					$ma := 0
+					while($ma < $multi_cursor)
+						if (%multi_orig_note_arr[$ma] = $EVENT_NOTE)
+							ignore_event(%multi_id_arr[$ma])
+						end if
+						inc($ma)
+					end while
+					$organ_block := 1
+				end if
+			case 2
+				if (%hold_arr[$EVENT_NOTE] > 1)
+					fade_out($EVENT_ID,1,0)	{the new note should be mute in the beginning }
+						%multi_func_id[$mf_cursor] := $EVENT_ID
+						%multi_func_type[$mf_cursor] := 5
+						inc($mf_cursor)
+					fade_in($EVENT_ID,$Fade_sw)	{fade in the new note}
+						%multi_func_id[$mf_cursor] := $EVENT_ID
+						%multi_func_para[$mf_cursor] := $fade_sw
+						%multi_func_type[$mf_cursor] := 6
+						inc($mf_cursor)
+					fade_out(%last2_id[$EVENT_NOTE],$Fade_sw,1)
+						%multi_func_id[$mf_cursor] := %last2_id[$EVENT_NOTE]
+						%multi_func_para[$mf_cursor] := $fade_sw
+						%multi_func_type[$mf_cursor] := 7
+						inc($mf_cursor)
+					dec(%hold_arr[$EVENT_NOTE])
+					$string_fade := 1
+				else
+					if ($hold_nr > 0)
+						$a := $a
+					end if
+				end if
+				$dynamic_maker := 1
+				$vol_helper := ($Dynamic * ($EVENT_VELOCITY - 64)) /64
+				change_vol($EVENT_ID,$vol_helper+$new_vol,1)
+					%multi_func_id[$mf_cursor] := $EVENT_ID
+					%multi_func_para[$mf_cursor] := $vol_helper
+					%multi_func_type[$mf_cursor] := 8
+					inc($mf_cursor)
+			case 3
+				if (%hold_arr[$EVENT_NOTE] > 1)
+					fade_out(%last2_id[$EVENT_NOTE],$Fade_synth_out,1)
+						%multi_func_id[$mf_cursor] := %last2_id[$EVENT_NOTE]
+						%multi_func_para[$mf_cursor] := $fade_sw
+						%multi_func_type[$mf_cursor] := 7
+						inc($mf_cursor)
+					dec(%hold_arr[$EVENT_NOTE])
+				end if
+			case 4
+				if (%hold_arr[$EVENT_NOTE] > 1)
+					$a := 0
+					$helper := $cursor
+					$cursor := 0
+					while ($a < $helper)
+						$virt_velo := ((%velo_arr[$a] * ($note_length-$ENGINE_UPTIME + %time_arr[$a]))/$note_length)
+						if ($EVENT_VELOCITY > $virt_velo and $EVENT_ID # %id_arr[$a] and $EVENT_NOTE = %note_arr[$a])
+							fade_out(%id_arr[$a],$FADE_OUT_PIANO,1)
+								%multi_func_id[$mf_cursor] := %id_arr[$a]
+								%multi_func_para[$mf_cursor] := $FADE_OUT_PIANO
+								%multi_func_type[$mf_cursor] := 7
+								inc($mf_cursor)
+							dec(%hold_arr[$EVENT_NOTE])						
+						else
+							%id_arr[$cursor] := %id_arr[$a]
+							%note_arr[$cursor] := %note_arr[$a]
+							%velo_arr[$cursor] := %velo_arr[$a]
+							%time_arr[$cursor] := %time_arr[$a]
+							inc($cursor)						
+						end if
+						inc($a)
+					end while
+				end if
+				$dynamic_maker := 1
+				$vol_helper := ($Dynamic * ($EVENT_VELOCITY - 64)) /64
+				change_vol($EVENT_ID,$vol_helper+$new_vol,1)
+					%multi_func_id[$mf_cursor] := $EVENT_ID
+					%multi_func_para[$mf_cursor] := $vol_helper
+					%multi_func_type[$mf_cursor] := 8
+					inc($mf_cursor)
+		end select 		
+	end if
+	$a := 0
+	while($a < $multi_cursor)
+		$b := 0
+		$c := 0
+		while($b < $mf_cursor)
+			if (%multi_func_id[$b] = %multi_orig_id_arr[$a])
+				select(%multi_func_type[$b])
+					case 1
+						fade_out(%multi_id_arr[$a],$FADE_OUT_DEFAULT,1)
+					case 3
+						ignore_event(%multi_id_arr[$a])
+					case 4
+						change_tune(%multi_id_arr[$a],%multi_func_para[$b],1)
+					case 5
+						fade_out(%multi_id_arr[$a],1,0)
+					case 6
+						fade_in(%multi_id_arr[$a],%multi_func_para[$b])
+					case 7
+						fade_out(%multi_id_arr[$a],%multi_func_para[$b],1)
+					case 8
+						change_vol(%multi_id_arr[$a],%multi_func_para[$b]+$new_vol,1)
+				end select
+			end if
+			inc($b)
+		end while
+		inc($a)
+	end while
+	
+	%last2_id[$EVENT_NOTE] := $EVENT_ID
+	if ($last_mono = 1)
+		%last2_id[$EVENT_NOTE] := $mono_id
+	end if
+	$last_mono := $mono
+	if ($portamento = 1)
+		if (($hold_nr >=  $Auto and $mono = 1) or ($hold_nr >  $Auto and $mono = 0))
+			$ziel_pos := $EVENT_NOTE * 100000+$new_tune
+			if ($mono = 0)
+				$a := 0
+				$helper := 5000
+				while($a < 128)
+					if (%pressed_id[$a] > 0 and abs($a - $EVENT_NOTE) < abs($EVENT_NOTE - $helper) and $a # $EVENT_NOTE)
+						$helper := $a
+					end if
+					inc($a)
+				end while
+				if ($helper > 127)
+					$helper := $last_note
+					if ($last_note < 0)
+						$helper := $EVENT_NOTE
+					end if
+				end if
+				$poly_tune_diff := $ziel_pos - $helper * 100000
+				$cur_pos := $helper * 100000
+			else
+				$poly_tune_diff := $ziel_pos - $mono_pos			
+			end if
+			if ($mono = 0)
+				change_tune($EVENT_ID,-$poly_tune_diff,1)
+				$ma := 0
+				while($ma < $multi_cursor)
+					if ($EVENT_ID = %multi_orig_id_arr[$ma])
+						change_tune(%multi_id_arr[$ma],-$poly_tune_diff,1)
+					end if
+					inc($ma)
+				end while
+			else
+				if ($legato = 0)
+					change_tune($mono_id,-$poly_tune_diff,1)			
+					$ma := 0
+					while($ma < $multi_cursor)
+						if ($mono_id = %multi_orig_id_arr[$ma])
+							change_tune(%multi_id_arr[$ma],-$poly_tune_diff,1)
+						end if
+						inc($ma)
+					end while
+				end if
+			end if
+			if ($poly_tune_diff < 0)
+				$poly_direction := -1
+			else
+				$poly_direction := 1
+			end if
+			$poly_cur_diff := 0
+			inc($loop_counter)
+			$poly_checker := $loop_counter
+			while(abs($poly_cur_diff) < abs($poly_tune_diff) and ($poly_checker = $loop_counter or $mono = 0))
+				if ($porta_rel_glide_button = 1)
+					if ($GlideRel = 0)
+						$poly_interv := $poly_Tune_diff
+					else
+						$poly_interv := (1200000 / $GlideRel) *$poly_direction
+						if (abs($poly_cur_diff + $poly_interv) > abs($poly_Tune_diff))
+							$poly_interv := $poly_tune_diff - $poly_cur_diff
+						end if
+					end if
+				else
+					if ($Glideabs = 0)
+						$poly_interv := $poly_Tune_diff
+					else
+						$poly_interv := ($poly_Tune_diff / $Glideabs)
+						if (abs($poly_cur_diff + $poly_interv) > abs($poly_Tune_diff))
+							$poly_interv := $poly_tune_diff - $poly_cur_diff
+						end if
+					end if							
+				end if							
+				$cur_pos := $cur_pos + $poly_interv
+				$mono_pos := $mono_pos + $poly_interv
+				$poly_cur_diff := $poly_cur_diff + $poly_interv
+				change_tune($poly_id,$poly_interv,1)
+					$ma := 0
+					while($ma < $multi_cursor)
+						if ($poly_id = %multi_orig_id_arr[$ma])
+							change_tune(%multi_id_arr[$ma],$poly_interv,1)
+						end if
+						inc($ma)
+					end while
+				wait(1000)
+			end while
+		end if		
+	end if
+	wait(20000)
+	$a := 0
+	while($a < 128)
+		if (%pressed_id[$a] > 0 and event_status(%pressed_id[$a]) = 0)
+			%pressed_id[$a] := 0
+			%sos_state[$a] := %sos_state[$a] .and. (.not. 4)
+			if (%sos_state[$a] = 0 and %hold_arr[$a] > 0 )
+				%hold_arr[$a] := 0
+				dec($hold_nr)
+			end if
+		end if
+		inc($a)
+	end while
+	$b := $multi_cursor
+	$multi_cursor := 0
+	$ma := 0
+	while($ma < $b)
+		if (event_status(%multi_orig_id_arr[$ma]) = 0)
+			fade_out(%multi_id_arr[$ma],$FADE_OUT_DEFAULT,1)
+		else
+			%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+			%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+			%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+			%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+			%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+			%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+			inc($multi_cursor)					
+		end if
+		inc($ma)
+	end while
+
+end on
+
+on release
+	if (not in_range($EVENT_NOTE,$MIN_KEY,$MAX_KEY))
+		exit
+	end if
+	
+	
+	if ($no_release_callback = $EVENT_ID)
+		ignore_event($EVENT_ID)
+		exit
+	end if
+	if ($EVENT_ID = %pressed_id[$EVENT_NOTE])
+		%pressed_id[$EVENT_NOTE] := 0
+		%sos_state[$EVENT_NOTE] := %sos_state[$EVENT_NOTE] .and. (.not. 4)
+	end if	
+	if (%EVENT_PAR[0] = 4)
+			$a := 0
+			$b := $multi_cursor
+			$multi_cursor := 0
+			$ma := 0
+			while($ma < $b)
+				if ($EVENT_ID = %multi_orig_id_arr[$ma])
+					note_off(%multi_id_arr[$ma])
+				else
+					%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+					%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+					%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+					%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+					%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+					%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+					inc($multi_cursor)					
+				end if
+				inc($ma)
+			end while
+			exit
+	end if
+	if (%EVENT_PAR[0] = 3)
+		ignore_event($EVENT_ID)
+		exit
+	end if
+		$ignore_multi := 1
+	if (%sos_state[$EVENT_NOTE] = 0 and %hold_arr[$EVENT_NOTE] > 0 )
+		%hold_arr[$EVENT_NOTE] := 0
+		dec($hold_nr)
+	end if
+	if (%hold_arr[$EVENT_NOTE] > 0)
+		ignore_event($EVENT_ID)
+	end if
+	if (%EVENT_PAR[0] = 6)
+		ignore_event($EVENT_ID)
+		exit
+	end if
+	if ($last_mono = 1)
+		if ($EVENT_NOTE # $mono_note)
+			ignore_event($EVENT_ID)
+			exit
+		end if
+		if ($mono_key_up_button = 0)
+			if (%hold_arr[$mono_note] = 0)
+				note_off($mono_id)
+				set_event_par($mono_id,0,4)
+					$ma := 0
+					$b := $multi_cursor
+					$multi_cursor := 0
+					while($ma < $b)
+						if ($mono_id = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0)
+							note_off(%multi_id_arr[$ma])
+							set_event_par(%multi_id_arr[$ma],0,4)
+						else
+							%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+							%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+							%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+							%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+							%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+							%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+							inc($multi_cursor)
+						end if
+						inc($ma)
+					end while
+				$mono_id := 0
+				$cursor := 0
+				$mono_nr := 0
+			else
+				ignore_event($EVENT_ID)
+			end if
+		else
+			if ($hold_nr > 0)
+				select ($mono_prio_menu)
+					case 0  {find next note}
+						$a := 0
+						$helper := 5000
+						while($a < 128)
+							if (%pressed_id[$a] > 0 and abs($a - $EVENT_NOTE) < abs($EVENT_NOTE - $helper) and $a # $EVENT_NOTE)
+								$helper := $a
+							end if
+							inc($a)
+						end while
+					case 1  {last note}
+						$a := 0
+						$helper := 5000
+						$helper2 := 0
+						while($a < 128)
+							if (%pressed_id[$a] > 0 and %last_id[$a] > $helper2  and $a # $EVENT_NOTE)							
+								$helper2 := %last_id[$a]
+								$helper := $a
+							end if
+							inc($a)
+						end while
+					case 2  {low note}
+						$a := 0
+						$helper := 5000
+						while($a < 128)
+							if (%pressed_id[$a] > 0 and $a # $EVENT_NOTE)							
+								$helper := $a
+								$a := 128
+							end if
+							inc($a)
+						end while
+					case 3  {high note}
+						$a := 0
+						$helper := 5000
+						while($a < 128)
+							if (%pressed_id[$a] > 0 and $a # $EVENT_NOTE)							
+								$helper := $a
+							end if
+							inc($a)
+						end while
+				end select
+				if ($helper < 128) 
+					if (%pressed_id[$helper] = %bad_retrigger_id[$helper] and %pressed_id[$helper] > 0)
+						note_off($mono_id)
+						set_event_par($mono_id,0,4)
+							$ma := 0
+							$b := $multi_cursor
+							$multi_cursor := 0
+							while($ma < $b)
+								if ($mono_id = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0)
+									note_off(%multi_id_arr[$ma])
+									set_event_par(%multi_id_arr[$ma],0,4)
+								else
+									%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+									%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+									%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+									%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+									%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+									%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+									inc($multi_cursor)
+								end if
+								inc($ma)
+							end while
+						$mono_id := 0
+						$cursor := 0
+						$mono_nr := 0
+						exit
+					end if
+					$mono_note := $helper
+					
+					$new_tune := random (-1000,1000) * $hum_Tuning
+					$new_vol := random (-60,60) * $hum_Volume
+					$new_pan := random (-$hum_Pan*15,$hum_Pan*15)
+					if ($legato = 1)
+						if ($portamento = 0)
+							change_tune($mono_id,($mono_note*100000)-$mono_pos+$new_tune ,1 )
+							change_pan($mono_id,$new_pan,1)
+								$ma := 0
+								while($ma < $multi_cursor)
+									if ($mono_id = %multi_orig_id_arr[$ma])
+										change_tune(%multi_id_arr[$ma],($mono_note*100000)-$mono_pos+$new_tune,1)
+									end if
+									inc($ma)
+								end while
+							$mono_pos := $mono_note*100000+$new_tune
+						else
+							$poly_id := $mono_id
+						end if
+						$exit_after_portamento := 0
+						if (%pressed_id[$mono_note] > 0 )
+							ignore_event($EVENT_ID)
+							$exit_after_portamento := 1
+						end if
+					else
+						if ($mono_amp_rel_button = 0)
+							if ($Fadeout > 9)
+								fade_out($mono_id,($FadeOut+5)*1000,1)	
+								ignore_event($mono_id)
+							end if					
+						else
+							note_off($mono_id)
+						end if
+							$multi_helper := $mono_id
+						if ($mono_mode_knob = 3)
+							$Sample_offset := ($ENGINE_UPTIME - $mono_start_time)*1000
+						else
+							$Sample_offset := 0							
+						end if
+						if ($mono_leg_menu >= 0)
+							allow_group($mono_leg_menu)
+						end if
+						if ($mono_sus_menu >= 0)
+							disallow_group($mono_sus_menu)
+						end if
+						$new_vol := random (-60,60) * $hum_Volume
+						if ($mono_retrig_velo_menu = 0)
+							
+							$new_tune := random (-1000,1000) * $hum_Tuning
+							$new_velo := %pressed_velo[$helper] + (random (-127,127) * $hum_Velocity / 200)	
+							if ($new_velo > 127)
+								$new_velo := 127
+							end if
+							if ($new_velo < 1)
+								$new_velo := 1
+							end if
+							$mono_id := play_note($helper,$new_velo,$Sample_offset,0)
+						else
+							
+							$new_tune := random (-1000,1000) * $hum_Tuning
+							$new_velo := %pressed_velo[$EVENT_NOTE] + (random (-127,127) * $hum_Velocity / 200)	
+							if ($new_velo > 127)
+								$new_velo := 127
+							end if
+							if ($new_velo < 1)
+								$new_velo := 1
+							end if
+							$mono_id := play_note($helper,$new_velo,$Sample_offset,0)							
+						end if
+						set_event_par($mono_id,$EVENT_PAR_VOLUME,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME))
+						change_tune($mono_id,%tuning_array[0]+$new_tune,1)
+						change_pan($mono_id,%pan_array[0],1)
+						change_pan($mono_id,$new_pan,1)
+						change_vol($mono_id,$VOL_REDUCE*($int_voices-1)+$new_vol,1)		
+						if ($mono_amp_rel_button = 0)
+							fade_out($mono_id,1,0)	
+							fade_in($mono_id,($FadeIn+5)*1000)	
+						end if
+								$ma := 0
+								$b := $multi_cursor
+								$multi_cursor := 0
+								while($ma < $b)
+									if ($multi_helper = %multi_orig_id_arr[$ma])
+										if ($mono_amp_rel_button = 0)
+											fade_out(%multi_id_arr[$ma],($FadeOut+5)*1000,1)	
+											$ignore_multi := 1
+										else
+											note_off(%multi_id_arr[$ma])												
+										end if
+										if ($mono_retrig_velo_menu = 0)
+											%multi_id_arr[$ma] := play_note($helper+%multi_trans_arr[$ma],$new_velo,$Sample_offset,0)
+											change_tune(%multi_id_arr[$ma],%tuning_array[%multi_ix_array[$ma]]+$new_tune,1)
+											change_pan(%multi_id_arr[$ma],%pan_array[%multi_ix_array[$ma]],1)
+											change_pan(%multi_id_arr[$ma],$new_pan,1)
+											change_vol(%multi_id_arr[$ma],$VOL_REDUCE*($int_voices-1)+$new_vol+$orig_vol,1)		
+										else
+											%multi_id_arr[$ma] := play_note($helper+%multi_trans_arr[$ma],$new_velo,$Sample_offset,0)							
+											change_tune(%multi_id_arr[$ma],%tuning_array[%multi_ix_array[$ma]]+$new_tune,1)
+											change_pan(%multi_id_arr[$ma],%pan_array[%multi_ix_array[$ma]],1)
+											change_pan(%multi_id_arr[$ma],$new_pan,1)
+											change_vol(%multi_id_arr[$ma],$VOL_REDUCE*($int_voices-1)+$new_vol+$orig_vol,1)		
+										end if
+										
+										if ($FadeIn > 9 and $mono_amp_rel_button = 0)
+											fade_out(%multi_id_arr[$ma],1,0)	
+											fade_in(%multi_id_arr[$ma],$FadeIn*1000)	
+										end if
+										%multi_orig_id_arr[$ma] := $mono_id
+										inc($multi_cursor)										
+									else
+										%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+										%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+										%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+										%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+										%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+										%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+										inc($multi_cursor)										
+									end if
+									inc($ma)
+								end while
+						$poly_id := $mono_id
+						$mono_note := $helper
+						%id_arr[0] := $mono_id
+						%note_arr[0] := $helper
+						%velo_arr[0] := %velo_arr[$a]
+						%time_arr[0] := $ENGINE_UPTIME
+						$cursor := 1
+					end if		
+					if ($portamento = 1)
+						$ziel_pos := $mono_note * 100000 + $new_tune
+						$poly_tune_diff := $ziel_pos - $mono_pos			
+						if ($legato = 0)
+							change_tune($poly_id,-$poly_tune_diff,1)
+								$ma := 0
+								while($ma < $multi_cursor)
+									if ($poly_id = %multi_orig_id_arr[$ma])
+										change_tune(%multi_id_arr[$ma],-$poly_tune_diff,1)
+									end if
+									inc($ma)
+								end while
+						end if
+						if ($poly_tune_diff < 0)
+							$poly_direction := -1
+						else
+							$poly_direction := 1
+						end if
+						$poly_cur_diff := 0
+						inc($loop_counter)
+						$poly_checker := $loop_counter
+						while(abs($poly_cur_diff) < abs($poly_tune_diff) and ($poly_checker = $loop_counter or $mono = 0))
+							if ($porta_rel_glide_button = 1)
+								if ($GlideRel = 0)
+									$poly_interv := $poly_Tune_diff
+								else
+									$poly_interv := (1200000 / $GlideRel) *$poly_direction
+									if (abs($poly_cur_diff + $poly_interv) > abs($poly_Tune_diff))
+										$poly_interv := $poly_tune_diff - $poly_cur_diff
+									end if
+								end if
+							else
+								if ($Glideabs = 0)
+									$poly_interv := $poly_Tune_diff
+								else
+									$poly_interv := ($poly_Tune_diff / $Glideabs)
+									if (abs($poly_cur_diff + $poly_interv) > abs($poly_Tune_diff))
+										$poly_interv := $poly_tune_diff - $poly_cur_diff
+									end if
+								end if							
+							end if
+							$cur_pos := $cur_pos + $poly_interv
+							$mono_pos := $mono_pos + $poly_interv
+							$poly_cur_diff := $poly_cur_diff + $poly_interv
+							change_tune($poly_id,$poly_interv,1)
+								$ma := 0
+								while($ma < $multi_cursor)
+									if ($poly_id = %multi_orig_id_arr[$ma])
+										change_tune(%multi_id_arr[$ma],$poly_interv,1)
+									end if
+									inc($ma)
+								end while
+							wait(1000)
+						end while
+						if ($exit_after_portamento = 1)
+							exit
+						end if
+							$ma := 0
+							$b := $multi_cursor
+							$multi_cursor := 0
+							while($ma < $b)
+								if ($EVENT_ID = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0  or ...
+									(%multi_orig_id_arr[$ma] = $mono_id and $last_mono = 0)	)
+									note_off(%multi_id_arr[$ma])
+								else
+									%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+									%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+									%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+									%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+									%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+									%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+									inc($multi_cursor)
+								end if
+								inc($ma)
+							end while
+						exit
+					end if
+						if ($exit_after_portamento = 1)
+							exit
+						end if
+						$ma := 0
+						$b := $multi_cursor
+						$multi_cursor := 0
+						while($ma < $b)
+							if ($EVENT_ID = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0  or ...
+								(%multi_orig_id_arr[$ma] = $mono_id and $last_mono = 0)	)
+								note_off(%multi_id_arr[$ma])
+							else
+								%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+								%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+								%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+								%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+								%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+								%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+								inc($multi_cursor)
+							end if
+							inc($ma)
+						end while
+					exit
+				end if
+			else
+				note_off($mono_id)
+				set_event_par($mono_id,0,4)
+					$ma := 0
+					$b := $multi_cursor
+					$multi_cursor := 0
+					while($ma < $b)
+							
+						if ($mono_id = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0)
+							note_off(%multi_id_arr[$ma])
+							set_event_par(%multi_id_arr[$ma],0,4)
+						else
+							%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+							%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+							%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+							%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+							%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+							%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+							inc($multi_cursor)
+						end if
+						inc($ma)
+					end while
+				$mono_id := 0
+				$cursor := 0			
+			end if
+		end if
+		exit
+	end if
+	$a := 0
+	$helper := $cursor
+	$cursor := 0
+	while($a < $helper)
+		if (%hold_arr[%note_arr[$a]] > 0)
+			%id_arr[$cursor] := %id_arr[$a]
+			%note_arr[$cursor] := %note_arr[$a]
+			%velo_arr[$cursor] := %velo_arr[$a]
+			%time_arr[$cursor] := %time_arr[$a]
+			inc($cursor)
+		else
+			note_off(%id_arr[$a])
+			{**multi**}
+				$ma := 0
+				$b := $multi_cursor
+				$multi_cursor := 0
+				while($ma < $b)
+					if ($EVENT_NOTE = %multi_orig_note_arr[$ma]{ or event_status(%multi_id_arr[$ma]) = 0} or ...
+								(%multi_orig_id_arr[$ma] = $mono_id and $last_mono = 0)	)
+						note_off(%multi_id_arr[$ma])
+						{fade_out(%multi_id_arr[$ma],300000,1)}
+					else
+						%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+						%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+						%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+						%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+						%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+						%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+						inc($multi_cursor)
+					end if
+					inc($ma)
+				end while
+			{**multi**}
+			set_event_par(%id_arr[$a],0,33)
+		end if
+		inc($a)
+	end while
+	
+end on
+
+on controller
+	select ($CC_NUM)
+		case 64
+			$flag_nr_cc := 1
+			if (%CC[64] > 63 and %last_cc[64] < 64)
+				$a := 0
+				while($a < 128)
+					%sos_state[$a] := %sos_state[$a] .or. $flag_nr_cc
+					inc($a)
+				end while
+			end if
+			if (%CC[64] < 64 and %last_cc[64] > 63)
+				$func_cc_note_off := 1
+			end if
+			%last_cc[$CC_NUM] := %CC[$CC_NUM] 
+		case 66
+			$flag_nr_cc := 2
+			if (%CC[66] > 63 and %last_cc[66] < 64)
+				$a := 0
+				while($a < 128)
+					if (%pressed_id[$a] > 0)
+						%sos_state[$a] := %sos_state[$a] .or. $flag_nr_cc
+					end if
+					inc($a)
+				end while
+			end if
+			if (%CC[66] < 64 and %last_cc[66] > 63)
+				$func_cc_note_off := 1
+			end if
+			%last_cc[$CC_NUM] := %CC[$CC_NUM] 
+	end select
+	if ($func_cc_note_off = 1)
+		$func_cc_note_off := 0
+		$a := 0
+		while($a < 128)
+			%sos_state[$a] := %sos_state[$a] .and. (.not. $flag_nr_cc)
+			if (%sos_state[$a] = 0 and %hold_arr[$a] > 0 )
+				%hold_arr[$a] := 0
+				dec($hold_nr)
+			end if
+			inc($a)
+		end while	
+		$a := 0
+		$helper := $cursor
+		$cursor := 0
+		while($a < $helper)
+			if (%hold_arr[%note_arr[$a]] > 0{ and event_status(%id_arr[$a]) > 0})
+				%id_arr[$cursor] := %id_arr[$a]
+				%note_arr[$cursor] := %note_arr[$a]
+				%velo_arr[$cursor] := %velo_arr[$a]
+				%time_arr[$cursor] := %time_arr[$a]
+				inc($cursor)
+			else
+				note_off(%id_arr[$a])
+				set_event_par(%id_arr[$a],0,4)
+				{**multi**}
+				$ma := 0
+				$b := $multi_cursor
+				$multi_cursor := 0
+				while($ma < $b)
+					if (%id_arr[$a] = %multi_orig_id_arr[$ma] or event_status(%multi_id_arr[$ma]) = 0)
+						note_off(%multi_id_arr[$ma])
+						set_event_par(%multi_id_arr[$ma],0,4)
+					else
+						%multi_id_arr[$multi_cursor] := %multi_id_arr[$ma]
+						%multi_note_arr[$multi_cursor] := %multi_note_arr[$ma]
+						%multi_orig_id_arr[$multi_cursor] := %multi_orig_id_arr[$ma]
+						%multi_orig_note_arr[$multi_cursor] := %multi_orig_note_arr[$ma]
+						%multi_ix_array[$multi_cursor] := %multi_ix_array[$ma]
+						%multi_trans_arr[$multi_cursor] := %multi_trans_arr[$ma]
+						inc($multi_cursor)
+					end if
+					inc($ma)
+				end while
+				{**multi**}
+			end if
+			inc($a)
+		end while
+		if ($cursor = 0)
+			$mono_id := 0
+		end if
+	end if
+end on
+
+on ui_control ($mono_amp_rel_button)
+	if ($mono_amp_rel_button = 0 and $legato = 0)
+		set_text($mono_fade_out_knob,"Fade Out")	
+		set_text($mono_fade_in_knob,"Fade In")	
+	else
+		set_text($mono_fade_out_knob,"n/a")	
+		set_text($mono_fade_in_knob,"n/a")	
+	end if
+end on
+
+on ui_control ($voice_fade_sw_knob)
+	$a := $voice_fade_sw_knob/10
+	$fade_sw := ($a*$a*2000)/(200*200)
+	if ($fade_sw < 1000)
+		set_knob_label($voice_fade_sw_knob,$fade_sw/1000&"."&($fade_sw mod 1000)/100&($fade_sw mod 100)/10&" s")
+	else
+		set_knob_label($voice_fade_sw_knob,$fade_sw/1000&"."&($fade_sw mod 1000)/100&" s")	
+	end if	
+	$fade_sw := $fade_sw*1000
+end on
+
+
+on ui_control ($porta_combi_knob)
+	select ($porta_combi_knob)
+		case 0 to 31
+			$GlideRel := ($porta_combi_knob * 80)/32
+		case 32 to 63
+			$GlideRel := (($porta_combi_knob-32) * 120)/32 + 80
+		case 64 to 95
+			$GlideRel := (($porta_combi_knob-64) * 200)/32 + 200
+		case 96 to 127
+			$GlideRel := (($porta_combi_knob-96) * 2600)/31 +400
+	end select
+	$GlideAbs := ($porta_combi_knob*$porta_combi_knob*2000)/(127*127)
+	{if ($porta_rel_glide_button = 1)
+		set_knob_label($porta_combi_knob,$GlideRel)		
+	else
+		if ($GlideAbs < 1000)
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&($GlideAbs mod 100)/10&" s")
+		else
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&" s")	
+		end if	
+	end if}
+end on
+{
+on ui_control ($porta_rel_knob)
+	select ($porta_rel_knob)
+		case 0 to 31
+			$GlideRel := ($porta_rel_knob * 80)/32
+		case 32 to 63
+			$GlideRel := (($porta_rel_knob-32) * 120)/32 + 80
+		case 64 to 95
+			$GlideRel := (($porta_rel_knob-64) * 200)/32 + 200
+		case 96 to 127
+			$GlideRel := (($porta_rel_knob-96) * 2600)/31 +400
+	end select
+end on
+
+on ui_control ($porta_abs_knob)
+	$GlideAbs := ($porta_abs_knob*$porta_abs_knob*2000)/(127*127)
+	if ($GlideAbs < 1000)
+		set_knob_label($porta_abs_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&($GlideAbs mod 100)/10&" s")
+	else
+		set_knob_label($porta_abs_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&" s")	
+	end if
+end on
+}
+
+
+on ui_control ($porta_rel_glide_button)
+	select ($porta_combi_knob)
+		case 0 to 31
+			$GlideRel := ($porta_combi_knob * 80)/32
+		case 32 to 63
+			$GlideRel := (($porta_combi_knob-32) * 120)/32 + 80
+		case 64 to 95
+			$GlideRel := (($porta_combi_knob-64) * 200)/32 + 200
+		case 96 to 127
+			$GlideRel := (($porta_combi_knob-96) * 2600)/31 +400
+	end select
+	$GlideAbs := ($porta_combi_knob*$porta_combi_knob*2000)/(127*127)
+	{if ($porta_rel_glide_button = 1)
+		set_knob_label($porta_combi_knob,$GlideRel)		
+	else
+		if ($GlideAbs < 1000)
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&($GlideAbs mod 100)/10&" s")
+		else
+			set_knob_label($porta_combi_knob,$Glideabs/1000&"."&($GlideAbs mod 1000)/100&" s")	
+		end if	
+	end if}
+end on
+
+on ui_control ($voice_fade_synth_out_knob)
+	$a := $voice_fade_synth_out_knob/10
+	$fade_synth_out := ($a*$a*2000)/(200*200)
+	if ($fade_synth_out < 1000)
+		set_knob_label($voice_fade_synth_out_knob,$fade_synth_out/1000&"."&($fade_synth_out mod 1000)/100&($fade_synth_out mod 100)/10&" s")
+	else
+		set_knob_label($voice_fade_synth_out_knob,$fade_synth_out/1000&"."&($fade_synth_out mod 1000)/100&" s")	
+	end if	
+	$fade_synth_out := $fade_synth_out*1000
+end on
+
+on ui_control($mono_fade_out_knob)
+	$a := $mono_fade_out_knob/10
+	$fadeout := (($a*$a*2000)/(200*200))+10
+	if ($fadeout < 1000)
+		set_knob_label($mono_fade_out_knob,($fadeout-10)/1000&"."&(($fadeout-10) mod 1000)/100&(($fadeout-10) mod 100)/10&" s")
+	else
+		set_knob_label($mono_fade_out_knob,($fadeout-10)/1000&"."&(($fadeout-10) mod 1000)/100&" s")	
+	end if	
+end on
+
+on ui_control($mono_fade_in_knob)
+	$a := $mono_fade_in_knob/10
+	$fadein := (($a*$a*2000)/(200*200))+10
+	if ($fadein < 1000)
+		set_knob_label($mono_fade_in_knob,($fadein-10)/1000&"."&(($fadein-10) mod 1000)/100&(($fadein-10) mod 100)/10&" s")
+	else
+		set_knob_label($mono_fade_in_knob,($fadein-10)/1000&"."&(($fadein-10) mod 1000)/100&" s")	
+	end if	
+end on
+
+on ui_control($mono_key_up_button)
+	
+		if ($legato_button = 0)
+			set_text($mono_amp_rel_label,"Amp Release:")
+		else
+			set_text($mono_amp_rel_label,"n/a")
+		end if
+		
+	
+	if ($mono_button = 1 and $mono_key_up_button = 1 and $bad_active = 0)
+		$bad_active := 1
+		$a := 0
+		while($a < 128)	
+			%bad_retrigger_id[$a] := %pressed_id[$a]
+			inc($a)
+		end while
+	else
+		$bad_active := 0
+	end if
+end on
+
+on ui_control ($mono_mode_knob)
+	set_knob_label($mono_mode_knob,!Mode_name[$mono_mode_knob])
+	select ($mono_mode_knob)
+		case 0 
+			$mono_button := 0
+		case 1
+			$mono_button := 1
+			$legato_button := 0
+		case 2
+			$mono_button := 1
+			$legato_button := 1
+		case 3
+			$mono_button := 1
+			$legato_button := 0
+	end select
+	if ($mono_mode_knob # 2 and $mono_amp_rel_button = 0)
+		set_text($mono_fade_in_knob,"Fade In")	
+		set_text($mono_fade_out_knob,"Fade Out")	
+	else
+		set_text($mono_fade_in_knob,"n/a")	
+		set_text($mono_fade_out_knob,"n/a")	
+	end if
+	
+	if ($mono_mode_knob # 2)
+		set_text($mono_amp_rel_label,"Amp Release:")
+	else
+		set_text($mono_amp_rel_label,"n/a")
+	end if
+	
+	$mono := $mono_button
+	$legato := $legato_button
+	if ($mono_button = 1 and $mono_key_up_button = 1 and $bad_active = 0)
+		$bad_active := 1
+		$a := 0
+		while($a < 128)	
+			%bad_retrigger_id[$a] := %pressed_id[$a]
+			inc($a)
+		end while
+	else
+		$bad_active := 0
+	end if
+end on
+
+on ui_control ($portamento_knob)
+	set_knob_label($portamento_knob,!Portamento_knob_name[$portamento_knob])		
+	select ($portamento_knob)
+		case 0
+			$Portamento_button := 0
+			$Auto_button := 0
+		case 1
+			$Portamento_button := 1
+			$Auto_button := 0
+		case 2
+			$Portamento_button := 1
+			$Auto_button := 1
+	end select
+	$portamento := $portamento_button
+	$auto := $auto_button	
+end on
+
+on ui_control ($mono_retrig_velo_menu)
+	if ($mono_mode_knob = 2 or $mono_key_up_button = 0)
+		$mono_retrig_velo_menu := $last_velo_menu
+	end if
+	$last_velo_menu := $mono_retrig_velo_menu
+end on
+
+on ui_control ($mono_prio_menu)
+	if ($mono_key_up_button = 0)
+		$mono_prio_menu := $last_prio_menu
+	end if
+	$last_prio_menu := $mono_prio_menu
+end on
+
+on ui_control ($voice_menu)
+	move_control ($voice_keyclick_menu,0,0)
+	move_control ($voice_keyclick_label,0,0)
+	move_control($voice_fade_sw_knob,0,0)
+	move_control ($voice_fade_synth_out_knob,0,0)
+	select ($voice_menu)
+		case 1
+			move_control ($voice_keyclick_menu,2,9)
+			move_control ($voice_keyclick_label,2,8)
+		case 2
+			move_control($voice_fade_sw_knob,2,8)
+		case 3
+			move_control ($voice_fade_synth_out_knob,2,8)
+	end select
+end on
+
+
+on ui_control ($Expert)
+	if ($Expert = 1)
+		$count := 0
+		while ($count < $NUM_DEFAULT_VIEW)
+			set_control_par(%default_view_id[$count],$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+			inc($count)
+		end while
+		
+		$count := 0
+		while ($count < $NUM_EXPERT_VIEW)
+			set_control_par(%expert_view_id[$count],$CONTROL_PAR_HIDE,$HIDE_PART_NOTHING)
+			inc($count)
+		end while
+		move_control ($voice_keyclick_menu,0,0)
+		move_control ($voice_keyclick_label,0,0)
+		move_control($voice_fade_sw_knob,0,0)
+		move_control ($voice_fade_synth_out_knob,0,0)
+		select ($voice_menu)
+			case 1
+				move_control ($voice_keyclick_menu,2,9)
+				move_control ($voice_keyclick_label,2,8)
+			case 2
+				move_control($voice_fade_sw_knob,2,8)
+			case 3
+				move_control ($voice_fade_synth_out_knob,2,8)
+		end select		
+	else
+		$count := 0
+		while ($count < $NUM_DEFAULT_VIEW)
+			set_control_par(%default_view_id[$count],$CONTROL_PAR_HIDE,$HIDE_PART_NOTHING)
+			inc($count)
+		end while
+		
+		$count := 0
+		while ($count < $NUM_EXPERT_VIEW)
+			set_control_par(%expert_view_id[$count],$CONTROL_PAR_HIDE,$HIDE_WHOLE_CONTROL)
+			inc($count)
+		end while
+	end if
+end on
+{END OF SCRIPT}

@@ -39,7 +39,6 @@ on init
     set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, $reverb_knob, -1, 1, 1)
 	set_knob_label($reverb_knob, get_engine_par_disp($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, -1, 1, 1))
 
-
 {**}
 
 	declare !interval_names[14]
