@@ -1,8 +1,8 @@
 {***********************************************
 Interval
 Author: Native Instruments
-Written by: Nicki Marinic & Alberto Alcázar
-Modified: Aug 10, 2009
+Written by: Nicki Marinic, Josef Natterer & Alberto Alcázar
+Modified: Aug 2, 2025
 *************************************************}
 
 on init
@@ -50,7 +50,7 @@ on init
  	declare ui_knob $interval_knob(-12,12,1)
 	set_text ($interval_knob,"Interval")
 	set_knob_defval($interval_knob,0)
-	$interval_knob := 7
+	$interval_knob := 12
 	set_knob_label($interval_knob,!Interval_names[abs($interval_knob)])			
 	make_persistent($interval_knob)
 	set_control_help ($interval_knob,"Interval: Sets the interval of the second note.")
@@ -59,7 +59,7 @@ on init
 	set_text ($octave_knob,"Octave")
 	set_knob_unit($octave_knob,$KNOB_UNIT_OCT)
 	set_knob_defval($octave_knob,0)
-	$octave_knob := 0
+	$octave_knob := 1
 	make_persistent($octave_knob)
 	set_control_help ($octave_knob,"Octave: Sets the octave offset of the second note.")
 	
