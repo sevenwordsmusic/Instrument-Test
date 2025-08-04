@@ -12,7 +12,7 @@ on init
 	set_script_title("See Saw")
 	make_perfview
 	set_ui_height_px(220)
-	set_ui_width_px(632)
+	set_ui_width_px(633)
 
 	{*Distortion*}
 	set_engine_par($ENGINE_PAR_EFFECT_TYPE, $EFFECT_TYPE_DISTORTION, -1, 0, 1)
@@ -80,6 +80,24 @@ on init
 	move_control($phaser_knob_feedback,4,4)
     set_engine_par($ENGINE_PAR_PH_FEEDBACK, $phaser_knob_feedback, -1, 2, 1)
 	set_knob_label($phaser_knob_feedback, get_engine_par_disp($ENGINE_PAR_PH_FEEDBACK, -1, 2, 1))
+
+	{*LP Filter*}
+	set_engine_par($ENGINE_PAR_EFFECT_TYPE, $EFFECT_TYPE_SOLID_GEQ, -1, 3, 1)
+
+	declare ui_switch $LP_filter
+	set_text ($LP_filter,"LP Filter")
+	make_persistent($LP_filter)
+	set_control_help ($LP_filter,"LP Filter: Activates the low-pass filter")
+	move_control($LP_filter,5,4)
+	set_engine_par($ENGINE_PAR_SEQ_LF_GAIN , 0,-1, 3, 1)
+
+	{*HP Filter*}
+	declare ui_switch $HP_filter
+	set_text ($HP_filter,"HP Filter")
+	make_persistent($HP_filter)
+	set_control_help ($HP_filter,"HP Filter: Activates the high-pass filter")
+	move_control($HP_filter,5,5)
+	set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , 0,-1, 3, 1)
 
 {**}
 
@@ -192,8 +210,19 @@ on ui_control ($phaser_knob_phase)
 	set_knob_label($phaser_knob_phase, get_engine_par_disp($ENGINE_PAR_PH_PHASE, -1, 2, 1))
 end on
 
-on ui_control ($phaser_knob_feedback)
-    set_engine_par($ENGINE_PAR_PH_FEEDBACK, $phaser_knob_feedback, -1, 2, 1)
-	set_knob_label($phaser_knob_feedback, get_engine_par_disp($ENGINE_PAR_PH_FEEDBACK, -1, 2, 1))
+on ui_control ($LP_filter)
+	if ($LP_filter > 0)
+		set_engine_par($ENGINE_PAR_SEQ_LF_GAIN , -20,-1, 3, 1)
+    else
+		set_engine_par($ENGINE_PAR_SEQ_LF_GAIN , 0,-1, 3, 1)
+    end if
+end on
+
+on ui_control ($HP_filter)
+	if ($HP_filter > 0)
+		set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , -20,-1, 3, 1)
+    else
+		set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , 0,-1, 3, 1)
+    end if
 end on
 {**}
