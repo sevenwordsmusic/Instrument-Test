@@ -2,7 +2,7 @@
 Sea Saw
 Author: Native Instruments
 Written by: Nicki Marinic & Alberto Alcázar
-Modified: Aug 2, 2025
+Modified: Aug 4, 2025
 *************************************************}
 
 on init
@@ -99,6 +99,12 @@ on init
 	move_control($HP_filter,5,5)
 	set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , 500000,-1, 3, 1)
 
+	{*Key-Switches*}
+	set_key_color(24, $KEY_COLOR_RED)
+	set_key_color(26, $KEY_COLOR_RED)
+	set_key_color(28, $KEY_COLOR_RED)
+	set_key_color(29, $KEY_COLOR_RED)
+
 {**}
 
 	declare !interval_names[14]
@@ -154,7 +160,9 @@ on init
 end on
 
 on note
-	
+{**}
+	if($EVENT_NOTE > 35)
+{**}
 		$new_note:= $EVENT_NOTE + $interval_knob+($octave_knob*12)
 		
 		if ($new_note < 0)
@@ -177,7 +185,25 @@ on note
 		change_vol($new_id,get_event_par($EVENT_ID,$EVENT_PAR_VOLUME),1)
 		change_tune($new_id,get_event_par($EVENT_ID,$EVENT_PAR_TUNE),1)
 		change_pan($new_id,get_event_par($EVENT_ID,$EVENT_PAR_PAN),1)
-	
+{**}	
+	end if
+		if($EVENT_NOTE = 24)
+			$LP_filter := 1
+			set_engine_par($ENGINE_PAR_SEQ_LF_GAIN , -20,-1, 3, 1)
+		end if
+		if($EVENT_NOTE = 26)
+			$LP_filter := 0
+			set_engine_par($ENGINE_PAR_SEQ_LF_GAIN , 500000,-1, 3, 1)
+		end if
+		if($EVENT_NOTE = 28)
+			$HP_filter := 1
+			set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , -20,-1, 3, 1)
+		end if
+		if($EVENT_NOTE = 29)
+			$HP_filter := 0
+			set_engine_par($ENGINE_PAR_SEQ_HF_GAIN , 500000,-1, 3, 1)	
+		end if
+{**}
 end on
 
 on ui_control ($interval_knob)
